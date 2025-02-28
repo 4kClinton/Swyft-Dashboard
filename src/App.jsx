@@ -7,11 +7,11 @@ import {
 } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
-import Dashboard from "./pages/Dashboard";
-import Drivers from "./pages/Drivers";
-import Sales from "./pages/Sales";
-import Commissions from "./pages/Commissions";
-import Settings from "./pages/Settings";
+import Dashboard from "./Pages/Dashboard";
+import Drivers from "./Pages/Drivers";
+import Sales from "./Pages/Sales";
+import Commissions from "./Pages/Commissions";
+import Settings from "./Pages/Settings";
 import Marketing from "./Pages/Marketing";
 import Login from "./Pages/Login";
 import SuperAdminCockpit from "./Pages/SuperAdminCockpit";
