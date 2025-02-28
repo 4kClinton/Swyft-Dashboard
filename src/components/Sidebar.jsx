@@ -6,12 +6,14 @@ import PeopleIcon from "@mui/icons-material/People";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PaidIcon from "@mui/icons-material/Paid";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import CampaignIcon from "@mui/icons-material/Campaign"; // Added for Marketing
 
 const navItems = [
   { name: "Overview", path: "/", icon: <DashboardIcon /> },
   { name: "User & Driver Management", path: "/drivers", icon: <PeopleIcon /> },
   { name: "Analytics", path: "/sales", icon: <BarChartIcon /> },
   { name: "Commissions", path: "/commissions", icon: <PaidIcon /> },
+  { name: "Marketing", path: "/marketing", icon: <CampaignIcon /> },
   { name: "Super Admin", path: "/settings", icon: <AdminPanelSettingsIcon /> }
 ];
 
