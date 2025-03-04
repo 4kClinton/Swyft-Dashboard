@@ -8,6 +8,7 @@ import {
   Menu,
   MenuItem
 } from "@mui/material";
+import zaLogo from "../assets/swyftLogo.png"
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 
@@ -20,12 +21,10 @@ function Navbar() {
     <AppBar position="static" style={{ backgroundColor: "#00d46a" }}>
       <Toolbar className="flex justify-between">
         <div className="flex items-center">
-          <IconButton edge="start" color="inherit">
+          {/* <IconButton edge="start" color="inherit">
             <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" className="ml-2" fontFamily={"Montserrat"}>
-            Swyft Dashboard
-          </Typography>
+          </IconButton> */}
+          <img src={zaLogo} className="ml-2 w-30 " alt="" />
         </div>
         <div>
           <IconButton

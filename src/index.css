@@ -3,3 +3,15 @@
 * {
   font-family: 'Montserrat', sans-serif;
 }
+
+/* In a global CSS file or inside a <style> block */
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  /* Lighten/darken as needed */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  /* Safari support */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  /* 12px (or use Tailwind's rounded-xl) */
+}
