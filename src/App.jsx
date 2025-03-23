@@ -10,6 +10,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./Pages/Dashboard";
 import Drivers from "./Pages/Drivers";
 import Sales from "./Pages/Sales";
+import DriverKYC from "./Pages/DriverKYC"
 import Commissions from "./Pages/Commissions";
 import Settings from "./Pages/Settings";
 import Marketing from "./Pages/Marketing";
@@ -51,6 +52,7 @@ function App() {
                       <Route path="/sales" element={<Sales />} />
                       <Route path="/commissions" element={<Commissions />} />
                       <Route path="/marketing" element={<Marketing />} />
+                      <Route path="/driver-kyc" element={<DriverKYC />} />
                     </Routes>
                   </div>
                 </div>

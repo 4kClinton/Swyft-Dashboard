@@ -63,7 +63,7 @@ function Drivers() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Driver KYC Verification</h1>
+      <h1 className="text-3xl font-bold mb-4">Drivers</h1>
 
       {/* Search Field */}
       <div className="mb-4">

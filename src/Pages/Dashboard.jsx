@@ -71,10 +71,9 @@ function Dashboard() {
       console.error("Error fetching driver sign ups:", driverError);
     } else if (driversData) {
       setDriverSignUps(driversData.length);
-
       const driverByDay = {};
       driversData.forEach((item) => {
-        const day = new Date(item.created_at).toISOString().slice(0, 10); // YYYY-MM-DD
+        const day = new Date(item.created_at).toISOString().slice(0, 10);
         driverByDay[day] = (driverByDay[day] || 0) + 1;
       });
       const driverDataArray = Object.keys(driverByDay)
@@ -98,7 +97,6 @@ function Dashboard() {
       console.error("Error fetching customer sign ups:", customerError);
     } else if (customersData) {
       setCustomerSignUps(customersData.length);
-
       const customerByDay = {};
       customersData.forEach((item) => {
         const day = new Date(item.created_at).toISOString().slice(0, 10);
@@ -120,7 +118,7 @@ function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
 
-    // 1. Fetch Orders & Revenue Trends (selecting status as well)
+    // 1. Fetch Orders & Revenue Trends
     try {
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
@@ -133,19 +131,15 @@ function Dashboard() {
         const completedOrders = orders.filter(
           (order) => order.status && order.status.toLowerCase() === "completed"
         );
-
         // Compute total revenue from completed orders
         const revenueSum = completedOrders.reduce(
           (acc, order) => acc + Number(order.commission || 0),
           0
         );
         setTotalRevenue(revenueSum);
-
-        // For totalOrders, you might choose to display all orders or only completed ones.
-        // Here we display the total orders count (all orders fetched)
+        // Total orders count (all orders fetched)
         setTotalOrders(orders.length);
-
-        // Group only completed orders by month for chart data
+        // Group completed orders by month for chart data
         const monthlyMap = {};
         completedOrders.forEach((order) => {
           const date = new Date(order.created_at);
@@ -175,13 +169,16 @@ function Dashboard() {
   };
 
   /**
-   * Setup realtime subscriptions for drivers (both online and sign ups)
-   * and for customers (sign ups).
+   * Setup realtime subscriptions for:
+   *  - drivers (online status and sign ups)
+   *  - customers (sign ups)
+   *  - orders (to update revenue and order count)
    */
   useEffect(() => {
+    // Initial data fetch
     fetchDashboardData();
 
-    // Subscription for changes in the "drivers" table
+    // ---- DRIVERS subscription ----
     const onlineDriversSubscription = supabase
       .channel("online_drivers")
       .on(
@@ -192,13 +189,12 @@ function Dashboard() {
           const updatedDrivers = await fetchOnlineDrivers();
           setOnlineDrivers(updatedDrivers);
           setActiveDrivers(updatedDrivers.length);
-          // Also update driver sign ups in case a new driver is added
           await fetchSignUpsData();
         }
       )
       .subscribe();
 
-    // Subscription for changes in the "customers" table (sign ups)
+    // ---- CUSTOMERS subscription ----
     const customerSignUpsSubscription = supabase
       .channel("customer_signups")
       .on(
@@ -211,10 +207,23 @@ function Dashboard() {
       )
       .subscribe();
 
-    // Cleanup subscriptions on unmount
+    // ---- ORDERS subscription ----
+    const ordersSubscription = supabase
+      .channel("orders_channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        async (payload) => {
+          console.log("Realtime change (orders) detected:", payload);
+          await fetchDashboardData();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(onlineDriversSubscription);
       supabase.removeChannel(customerSignUpsSubscription);
+      supabase.removeChannel(ordersSubscription);
     };
   }, []);
 
@@ -260,15 +269,6 @@ function Dashboard() {
         <>
           {/* Main Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* <StatsCard
-              title="Total Revenue"
-              value={
-                <span className="text-[#00d46a] font-bold">
-                  Ksh {formatNumber(totalRevenue)}
-                </span>
-              }
-              onClick={() => handleCardClick("Detailed Revenue Information")}
-            /> */}
             <StatsCard
               title="Total Orders"
               value={totalOrders}
