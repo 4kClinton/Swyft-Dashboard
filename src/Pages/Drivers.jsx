@@ -21,7 +21,7 @@ function Drivers() {
       // Fetch drivers data: ensure these column names match your table
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, name, email");
+        .select("id, first_name, email");
       if (error) {
         setError("Error fetching drivers");
         console.error("Error fetching drivers:", error);
@@ -34,6 +34,8 @@ function Drivers() {
     fetchDrivers();
   }, []);
 
+  console.log(drivers)
+
   const handleRowClick = (driver) => {
     setSelectedDriver(driver);
   };
@@ -44,21 +46,70 @@ function Drivers() {
 
   const handleApprove = async () => {
     if (!selectedDriver) return;
-    // You can update the driver's status here if needed
-    alert(`Approved ${selectedDriver.name}`);
-    handleCloseModal();
+  
+    try {
+      const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
+        method: "PATCH", // Or "PUT" depending on your backend setup
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedDriver.id }),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to verify driver");
+      }
+  
+      // Update the local state to reflect the verified status
+      setDrivers((prevDrivers) =>
+        prevDrivers.map((driver) =>
+          driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
+        )
+      );
+  
+      handleCloseModal();
+    } catch (error) {
+      console.error("Error verifying driver:", error);
+      alert("Failed to verify driver.");
+    }
   };
 
   const handleReject = async () => {
     if (!selectedDriver) return;
-    // You can update the driver's status here if needed
-    alert(`Rejected ${selectedDriver.name}`);
-    handleCloseModal();
+  
+    try {
+      const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/unverify", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedDriver.id }),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to unverify driver");
+      }
+  
+      // Update the local state to reflect the verified status
+      setDrivers((prevDrivers) =>
+        prevDrivers.map((driver) =>
+          driver.id === selectedDriver.id ? { ...driver, verified: false } : driver
+        )
+      );
+  
+      handleCloseModal();
+    } catch (error) {
+      console.error("Error unverifying driver:", error);
+      alert("Failed to unverify driver.");
+    }
   };
+  
+  
+
 
   // Filter drivers by the search query (by name)
   const filteredDrivers = drivers.filter((driver) =>
-    driver.name.toLowerCase().includes(searchQuery.toLowerCase())
+    driver.first_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -96,7 +147,7 @@ function Drivers() {
         {selectedDriver && (
           <div>
             <p>
-              <strong>Name:</strong> {selectedDriver.name}
+              <strong>Name:</strong> {selectedDriver.first_name}
             </p>
             <p>
               <strong>Email:</strong> {selectedDriver.email}
