@@ -2,6 +2,10 @@
 import React from "react";
 
 function DataTable({ columns, data, onRowClick }) {
+  console.log(data);
+  console.log("columns: " + columns);
+  
+  
   return (
     <div className="overflow-auto">
       <table className="min-w-full bg-gray-800 rounded-lg">

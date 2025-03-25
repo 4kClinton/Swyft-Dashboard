@@ -4,7 +4,7 @@ import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { supabase } from "../supabaseClient";
 
-const columns = ["Name", "Email"];
+const columns = ["id", "first_name", "email","verified", "driving_license", "national_id_front", "national_id_back", "psv_badge", "vehicle_registration", "vehicle_picture_front", "vehicle_picture_back", "psv_car_insurance", "inspection_report"];
 
 function DriverKYCUnverified() {
   const [drivers, setDrivers] = useState([]);
@@ -21,8 +21,8 @@ function DriverKYCUnverified() {
       // Fetch drivers with is_verified set to false
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, name, email, image_key, document_keys, is_verified")
-        .eq("is_verified", false);
+        .select("id, first_name, email,verified, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report")
+        .eq("verified", false);
 
       if (error) {
         setError("Error fetching drivers");
@@ -48,7 +48,9 @@ function DriverKYCUnverified() {
 
           return { ...driver, imageUrl, documentUrls };
         });
-        setDrivers(driversWithDocs);
+        console.log(data);
+        
+        setDrivers(data);
       }
       setLoading(false);
     }
@@ -70,14 +72,14 @@ function DriverKYCUnverified() {
     // Update the driver's verification status
     const { error } = await supabase
       .from("drivers")
-      .update({ is_verified: true })
+      .update({ verified: true })
       .eq("id", selectedDriver.id);
 
     if (error) {
       alert("Error approving driver");
       console.error("Error approving driver:", error);
     } else {
-      alert(`Approved ${selectedDriver.name}`);
+      alert(`Approved ${selectedDriver.first_name}`);
       // Optionally remove the driver from the list
       setDrivers((prev) => prev.filter((d) => d.id !== selectedDriver.id));
       handleCloseModal();
@@ -88,14 +90,14 @@ function DriverKYCUnverified() {
     if (!selectedDriver) return;
 
     // Here, you might want to update the driver's record or remove it from your DB.
-    alert(`Rejected ${selectedDriver.name}`);
+    alert(`Rejected ${selectedDriver.first_name}`);
     setDrivers((prev) => prev.filter((d) => d.id !== selectedDriver.id));
     handleCloseModal();
   };
 
   // Filter drivers by the search query (searching by name)
   const filteredDrivers = drivers.filter((driver) =>
-    driver.name.toLowerCase().includes(searchQuery.toLowerCase())
+    driver.first_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

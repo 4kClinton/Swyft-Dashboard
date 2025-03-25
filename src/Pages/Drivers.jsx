@@ -5,7 +5,7 @@ import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { supabase } from "../supabaseClient";
 
-const columns = ["Name", "Email"];
+const columns = ["first_name", "Email"];
 
 function Drivers() {
   const [drivers, setDrivers] = useState([]);
