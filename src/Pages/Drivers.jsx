@@ -4,6 +4,7 @@ import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { supabase } from "../supabaseClient";
+import "./Drivers.css";
 
 const columns = ["first_name", "Email"];
 
@@ -21,7 +22,7 @@ function Drivers() {
       // Fetch drivers data: ensure these column names match your table
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, first_name, email");
+        .select("id, first_name, email, verified, car_type, phone, license_number, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report, id_number, license_plate");
       if (error) {
         setError("Error fetching drivers");
         console.error("Error fetching drivers:", error);
@@ -154,8 +155,91 @@ function Drivers() {
             </p>
             {/* Since there's no status column in your DB, default to "Pending" */}
             <p>
-              <strong>Status:</strong> Pending
+              <strong>Status:</strong>{" "}
+              {selectedDriver.verified === true
+                ? "Approved"
+                : selectedDriver.verified === false
+                ? "Rejected"
+                : "Pending"}
             </p>
+            <p>
+              <strong>Car Type:</strong> {selectedDriver.car_type}
+            </p>
+            <p>
+              <strong>Phone:</strong> {selectedDriver.phone}
+            </p>
+            <div className="img-carrier">
+              <p>
+                <strong>License Number:</strong>
+              </p>
+              <img src={selectedDriver.license_number}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>Driving License:</strong>
+              </p>
+              <img src={selectedDriver.driving_license}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>National ID Front:</strong>
+              </p>
+              <img src={selectedDriver.national_id_front}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>National ID Back:</strong> 
+              </p>
+              <img src={selectedDriver.national_id_back}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>PSV Badge:</strong> 
+              </p>
+              <img src={selectedDriver.psv_badge}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>Vehicle Registration:</strong> 
+              </p>
+              <img src={selectedDriver.vehicle_registration}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>Vehicle Picture Front:</strong> 
+              </p>
+              <img src={selectedDriver.vehicle_picture_front}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>Vehicle Picture Back:</strong> 
+              </p>
+              <img src={selectedDriver.vehicle_picture_back}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>PSV Car Insurance:</strong> 
+              </p>
+              <img src={selectedDriver.psv_car_insurance}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>Inspection Report:</strong> 
+              </p>
+              <img src={selectedDriver.inspection_report}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>ID Number:</strong> 
+              </p>
+              <img src={selectedDriver.id_number}/>
+            </div>
+            <div className="img-carrier">
+              <p>
+                <strong>License Plate:</strong> 
+              </p>
+              <img src={selectedDriver.license_plate}/>
+            </div>
             <div className="flex space-x-4 mt-4">
               <Button onClick={handleApprove} variant="primary">
                 Approve
