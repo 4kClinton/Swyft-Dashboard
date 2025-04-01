@@ -78,10 +78,10 @@ function Dashboard() {
       });
       const driverDataArray = Object.keys(driverByDay)
         .map((day) => ({
-          name: day,
+          first_name: day,
           signups: driverByDay[day]
         }))
-        .sort((a, b) => new Date(a.name) - new Date(b.name));
+        .sort((a, b) => new Date(a.first_name) - new Date(b.first_name));
       setDriverSignUpData(driverDataArray);
     }
 
