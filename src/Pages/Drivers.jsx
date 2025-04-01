@@ -4,6 +4,9 @@ import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { supabase } from "../supabaseClient";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 import "./Drivers.css";
 
 const columns = ["first_name", "Email"];
@@ -15,14 +18,21 @@ function Drivers() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Slider references
+  const [mainSlider, setMainSlider] = useState(null);
+  const [thumbSlider, setThumbSlider] = useState(null);
+
   useEffect(() => {
     async function fetchDrivers() {
       setLoading(true);
       setError(null);
-      // Fetch drivers data: ensure these column names match your table
+
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, first_name, email, verified, car_type, phone, license_number, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report, id_number, license_plate");
+        .select(
+          "id, first_name, email, verified, car_type, phone, license_number, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report, id_number, license_plate"
+        );
+
       if (error) {
         setError("Error fetching drivers");
         console.error("Error fetching drivers:", error);
@@ -35,8 +45,6 @@ function Drivers() {
     fetchDrivers();
   }, []);
 
-  console.log(drivers)
-
   const handleRowClick = (driver) => {
     setSelectedDriver(driver);
   };
@@ -45,73 +53,131 @@ function Drivers() {
     setSelectedDriver(null);
   };
 
-  const handleApprove = async () => {
+  // const handleApprove = async () => {
+  //   if (!selectedDriver) return;
+  
+  //   try {
+  //     const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
+  //       method: "PATCH", // Or "PUT" depending on your backend setup
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ id: selectedDriver.id }),
+  //     });
+  
+  //     const data = await response.json();
+  
+  //     if (!response.ok) {
+  //       throw new Error(data.error || "Failed to verify driver");
+  //     }
+  
+  //     // Update the local state to reflect the verified status
+  //     setDrivers((prevDrivers) =>
+  //       prevDrivers.map((driver) =>
+  //         driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
+  //       )
+  //     );
+  
+  //     handleCloseModal();
+  //   } catch (error) {
+  //     console.error("Error verifying driver:", error);
+  //     alert("Failed to verify driver.");
+  //   }
+  // };
+
+  // Single function to restrict (previously "reject") a driver
+  const handleRestrict = async () => {
     if (!selectedDriver) return;
-  
+
     try {
-      const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
-        method: "PATCH", // Or "PUT" depending on your backend setup
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selectedDriver.id }),
-      });
-  
+      const response = await fetch(
+        "https://swyft-backend-client-nine.vercel.app/driver/unverify",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: selectedDriver.id })
+        }
+      );
+
       const data = await response.json();
-  
+
       if (!response.ok) {
-        throw new Error(data.error || "Failed to verify driver");
+        throw new Error(data.error || "Failed to unverify (restrict) driver");
       }
-  
-      // Update the local state to reflect the verified status
+
+      // Update local state to reflect the verified status
       setDrivers((prevDrivers) =>
         prevDrivers.map((driver) =>
-          driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
+          driver.id === selectedDriver.id
+            ? { ...driver, verified: false }
+            : driver
         )
       );
-  
+
       handleCloseModal();
     } catch (error) {
-      console.error("Error verifying driver:", error);
-      alert("Failed to verify driver.");
+      console.error("Error restricting driver:", error);
+      alert("Failed to restrict driver.");
     }
   };
-
-  const handleReject = async () => {
-    if (!selectedDriver) return;
-  
-    try {
-      const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/unverify", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selectedDriver.id }),
-      });
-  
-      const data = await response.json();
-  
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to unverify driver");
-      }
-  
-      // Update the local state to reflect the verified status
-      setDrivers((prevDrivers) =>
-        prevDrivers.map((driver) =>
-          driver.id === selectedDriver.id ? { ...driver, verified: false } : driver
-        )
-      );
-  
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error unverifying driver:", error);
-      alert("Failed to unverify driver.");
-    }
-  };
-  
-  
-
 
   // Filter drivers by the search query (by name)
   const filteredDrivers = drivers.filter((driver) =>
     driver.first_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Prepare image data for the carousel (excluding license_number)
+  const imageData = selectedDriver
+    ? [
+        { label: "Driving License", src: selectedDriver.driving_license },
+        { label: "National ID Front", src: selectedDriver.national_id_front },
+        { label: "National ID Back", src: selectedDriver.national_id_back },
+        { label: "PSV Badge", src: selectedDriver.psv_badge },
+        {
+          label: "Vehicle Registration",
+          src: selectedDriver.vehicle_registration
+        },
+        {
+          label: "Vehicle Picture Front",
+          src: selectedDriver.vehicle_picture_front
+        },
+        {
+          label: "Vehicle Picture Back",
+          src: selectedDriver.vehicle_picture_back
+        },
+        {
+          label: "PSV Car Insurance",
+          src: selectedDriver.psv_car_insurance
+        },
+        { label: "Inspection Report", src: selectedDriver.inspection_report }
+      ]
+    : [];
+
+  // Log image URLs for debugging
+  console.log("Selected Driver Image URLs:", imageData);
+
+  // Main slider (large images)
+  const mainSliderSettings = {
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    arrows: true,
+    fade: false,
+    dots: false,
+    infinite: true,
+    speed: 500,
+    asNavFor: thumbSlider // Link to thumbnail slider
+  };
+
+  // Thumbnail slider (small images)
+  const thumbSliderSettings = {
+    slidesToShow: 5, // Number of thumbnails visible
+    slidesToScroll: 1,
+    dots: false,
+    infinite: true,
+    speed: 500,
+    centerMode: false,
+    focusOnSelect: true,
+    asNavFor: mainSlider, // Link back to main slider
+    arrows: true
+  };
 
   return (
     <div>
@@ -153,7 +219,12 @@ function Drivers() {
             <p>
               <strong>Email:</strong> {selectedDriver.email}
             </p>
-            {/* Since there's no status column in your DB, default to "Pending" */}
+            <p>
+              <strong>Phone:</strong> {selectedDriver.phone}
+            </p>
+            <p>
+              <strong>License Number:</strong> {selectedDriver.license_number}
+            </p>
             <p>
               <strong>Status:</strong>{" "}
               {selectedDriver.verified === true
@@ -165,88 +236,66 @@ function Drivers() {
             <p>
               <strong>Car Type:</strong> {selectedDriver.car_type}
             </p>
-            <p>
-              <strong>Phone:</strong> {selectedDriver.phone}
-            </p>
-            <div className="img-carrier">
-              <p>
-                <strong>License Number:</strong>
-              </p>
-              <img src={selectedDriver.license_number}/>
+
+            {/* TWO-PART CAROUSEL (Main + Thumbnails) */}
+            <div className="mt-4">
+              {/* Main Slider */}
+              <Slider
+                {...mainSliderSettings}
+                ref={(slider) => setMainSlider(slider)}
+              >
+                {imageData.map((img, index) => (
+                  <div key={index} style={{ textAlign: "center" }}>
+                    <img
+                      src={img.src}
+                      alt={img.label}
+                      loading="eager"
+                      style={{
+                        maxWidth: "65%",
+                        borderRadius:"10px",
+                        height: "auto",
+                        margin: "0 auto"
+                      }}
+                    />
+                    <p style={{ marginTop: "10px" }}>{img.label}</p>
+                  </div>
+                ))}
+              </Slider>
+
+              {/* Thumbnail Slider */}
+              <div style={{ marginTop: "10px" }}>
+                <Slider
+                  {...thumbSliderSettings}
+                  ref={(slider) => setThumbSlider(slider)}
+                >
+                  {imageData.map((img, index) => (
+                    <div key={index} style={{ padding: "0 5px" }}>
+                      <img
+                        src={img.src}
+                        alt={img.label}
+                        loading="eager"
+                        style={{
+                          width: "100%",
+                          height: "auto",
+                          cursor: "pointer",
+                          border: "1px solid #ccc"
+                        }}
+                      />
+                    </div>
+                  ))}
+                </Slider>
+              </div>
             </div>
-            <div className="img-carrier">
-              <p>
-                <strong>Driving License:</strong>
-              </p>
-              <img src={selectedDriver.driving_license}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>National ID Front:</strong>
-              </p>
-              <img src={selectedDriver.national_id_front}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>National ID Back:</strong> 
-              </p>
-              <img src={selectedDriver.national_id_back}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>PSV Badge:</strong> 
-              </p>
-              <img src={selectedDriver.psv_badge}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>Vehicle Registration:</strong> 
-              </p>
-              <img src={selectedDriver.vehicle_registration}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>Vehicle Picture Front:</strong> 
-              </p>
-              <img src={selectedDriver.vehicle_picture_front}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>Vehicle Picture Back:</strong> 
-              </p>
-              <img src={selectedDriver.vehicle_picture_back}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>PSV Car Insurance:</strong> 
-              </p>
-              <img src={selectedDriver.psv_car_insurance}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>Inspection Report:</strong> 
-              </p>
-              <img src={selectedDriver.inspection_report}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>ID Number:</strong> 
-              </p>
-              <img src={selectedDriver.id_number}/>
-            </div>
-            <div className="img-carrier">
-              <p>
-                <strong>License Plate:</strong> 
-              </p>
-              <img src={selectedDriver.license_plate}/>
-            </div>
+
+            {/* Single Restrict Button */}
             <div className="flex space-x-4 mt-4">
-              <Button onClick={handleApprove} variant="primary">
-                Approve
+              {/* <button className="bg-green-500 p-4 rounded-sm" onClick={handleApprove} variant="warning">
+                APPROVE DRIVER
+              </button> */}
+              <Button onClick={handleRestrict} variant="danger">
+                RESTRICT DRIVER
               </Button>
-              <Button onClick={handleReject} variant="danger">
-                Reject
-              </Button>
+
             </div>
           </div>
         )}
