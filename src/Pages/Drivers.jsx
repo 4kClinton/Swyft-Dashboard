@@ -97,6 +97,7 @@ function Drivers() {
         }
       );
 
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -292,6 +293,7 @@ function Drivers() {
               {/* <button className="bg-green-500 p-4 rounded-sm" onClick={handleApprove} variant="warning">
                 APPROVE DRIVER
               </button> */}
+
               <Button onClick={handleRestrict} variant="danger">
                 RESTRICT DRIVER
               </Button>
