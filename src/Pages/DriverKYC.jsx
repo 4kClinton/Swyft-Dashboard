@@ -128,6 +128,7 @@ function DriverKYCUnverified() {
   // Action handlers for Approve and Reject
   const handleApprove = async () => {
     if (!selectedDriver) return;
+
   
     try {
       const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
@@ -159,6 +160,7 @@ function DriverKYCUnverified() {
   const handleRestrict = async () => {
     if (!selectedDriver) return;
 
+
     try {
       const response = await fetch(
         "https://swyft-backend-client-nine.vercel.app/driver/unverify",
@@ -189,6 +191,7 @@ function DriverKYCUnverified() {
       console.error("Error restricting driver:", error);
       alert("Failed to restrict driver.");
     }
+
   };
 
   // Filter drivers by first name based on search query
