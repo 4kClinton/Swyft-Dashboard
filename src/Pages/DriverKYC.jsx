@@ -34,6 +34,7 @@ function DriverKYCUnverified() {
     async function fetchDrivers() {
       setLoading(true);
       setError(null);
+      
 
       // Fetch all drivers (verified and unverified) so we can display the verified status correctly
       const { data, error } = await supabase
@@ -42,7 +43,8 @@ function DriverKYCUnverified() {
           "id, first_name, email, verified, " +
             "national_id_front, national_id_back, psv_badge, vehicle_registration, " +
             "vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report"
-        );
+        )
+        .eq("verified", false);
 
       if (error) {
         setError("Error fetching drivers");
@@ -128,35 +130,76 @@ function DriverKYCUnverified() {
   const handleApprove = async () => {
     if (!selectedDriver) return;
 
-    const { error } = await supabase
-      .from("drivers")
-      .update({ verified: true })
-      .eq("id", selectedDriver.id);
-
-    if (error) {
-      alert("Error approving driver");
-      console.error("Error approving driver:", error);
-    } else {
-      alert(`Approved ${selectedDriver.first_name}`);
-      // Remove driver from the local state (optional)
-      setDrivers((prev) => prev.filter((d) => d.id !== selectedDriver.id));
+  
+    try {
+      const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
+        method: "PATCH", // Or "PUT" depending on your backend setup
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedDriver.id }),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to verify driver");
+      }
+  
+      // Update the local state to reflect the verified status
+      setDrivers((prevDrivers) =>
+        prevDrivers.map((driver) =>
+          driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
+        )
+      );
+  
       handleCloseModal();
+    } catch (error) {
+      console.error("Error verifying driver:", error);
+      alert("Failed to verify driver.");
     }
   };
 
-  const handleReject = async () => {
+  const handleRestrict = async () => {
     if (!selectedDriver) return;
 
-    alert(`Rejected ${selectedDriver.first_name}`);
-    // Optionally remove driver from the local state or update DB accordingly
-    setDrivers((prev) => prev.filter((d) => d.id !== selectedDriver.id));
-    handleCloseModal();
+
+    try {
+      const response = await fetch(
+        "https://swyft-backend-client-nine.vercel.app/driver/unverify",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: selectedDriver.id })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to unverify (restrict) driver");
+      }
+
+      // Update local state to reflect the verified status
+      setDrivers((prevDrivers) =>
+        prevDrivers.map((driver) =>
+          driver.id === selectedDriver.id
+            ? { ...driver, verified: false }
+            : driver
+        )
+      );
+
+      handleCloseModal();
+    } catch (error) {
+      console.error("Error restricting driver:", error);
+      alert("Failed to restrict driver.");
+    }
+
   };
 
   // Filter drivers by first name based on search query
   const filteredDrivers = drivers.filter((driver) =>
     driver.first_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
 
   return (
     <div>
@@ -193,7 +236,7 @@ function DriverKYCUnverified() {
             driver={selectedDriver}
             imageFields={imageFields}
             onApprove={handleApprove}
-            onReject={handleReject}
+            onReject={handleRestrict}
           />
         )}
       </Modal>
@@ -221,7 +264,6 @@ function DriverDetailModalContent({
   // Two-part carousel state for react-slick
   const [mainSlider, setMainSlider] = useState(null);
   const [thumbSlider, setThumbSlider] = useState(null);
-
   // Slider settings for main slider
   const mainSliderSettings = {
     slidesToShow: 1,
@@ -255,11 +297,7 @@ function DriverDetailModalContent({
       </p>
       <p className="mt-2">
         <strong>Status:</strong>{" "}
-        {driver.verified ? (
-          <span className="text-green-500 font-bold">VERIFIED</span>
-        ) : (
-          <span className="text-red-500 font-bold">UNVERIFIED</span>
-        )}
+        {driver.verified}
       </p>
 
       {/* Two-part Carousel */}

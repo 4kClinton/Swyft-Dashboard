@@ -2,8 +2,6 @@
 import React from "react";
 
 function DataTable({ columns, data, onRowClick }) {
-  console.log(data);
-  console.log("columns: " + columns);
   
   
   return (
