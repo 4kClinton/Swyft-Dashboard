@@ -34,6 +34,7 @@ function DriverKYCUnverified() {
     async function fetchDrivers() {
       setLoading(true);
       setError(null);
+      
 
       // Fetch all drivers (verified and unverified) so we can display the verified status correctly
       const { data, error } = await supabase
