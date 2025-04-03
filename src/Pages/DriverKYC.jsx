@@ -42,7 +42,8 @@ function DriverKYCUnverified() {
           "id, first_name, email, verified, " +
             "national_id_front, national_id_back, psv_badge, vehicle_registration, " +
             "vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report"
-        );
+        )
+        .eq("verified", false);
 
       if (error) {
         setError("Error fetching drivers");

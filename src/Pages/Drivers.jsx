@@ -31,7 +31,8 @@ function Drivers() {
         .from("drivers")
         .select(
           "id, first_name, email, verified, car_type, phone, license_number, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report, id_number, license_plate"
-        );
+        )
+        .eq("verified", true);
 
       if (error) {
         setError("Error fetching drivers");
