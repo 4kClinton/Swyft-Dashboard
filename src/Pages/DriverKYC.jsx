@@ -1,4 +1,4 @@
-// src/pages/DriverKYCUnverified.jsx
+// src/pages/Drivers.jsx
 import React, { useState, useEffect } from "react";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
@@ -7,47 +7,30 @@ import { supabase } from "../supabaseClient";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import "./Drivers.css";
 
-const user = localStorage.getItem("data");
-const data = localStorage.getItem("user");
+const columns = ["first_name", "Email"];
 
-
-
-// Table columns: note that "driving_license" has been removed.
-const columns = ["id", "first_name", "email", "verified"];
-
-// Define image fields for the carousel (driving_license removed)
-const imageFields = [
-  { key: "national_id_front", label: "National ID (Front)" },
-  { key: "national_id_back", label: "National ID (Back)" },
-  { key: "psv_badge", label: "PSV Badge" },
-  { key: "vehicle_registration", label: "Vehicle Registration" },
-  { key: "vehicle_picture_front", label: "Vehicle Picture (Front)" },
-  { key: "vehicle_picture_back", label: "Vehicle Picture (Back)" },
-  { key: "psv_car_insurance", label: "PSV Car Insurance" },
-  { key: "inspection_report", label: "Inspection Report" }
-];
-
-function DriverKYCUnverified() {
+function Drivers() {
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Slider references
+  const [mainSlider, setMainSlider] = useState(null);
+  const [thumbSlider, setThumbSlider] = useState(null);
 
   useEffect(() => {
     async function fetchDrivers() {
       setLoading(true);
       setError(null);
 
-
-      // Fetch all drivers (verified and unverified) so we can display the verified status correctly
       const { data, error } = await supabase
         .from("drivers")
         .select(
-          "id, first_name, email, verified, " +
-            "national_id_front, national_id_back, psv_badge, vehicle_registration, " +
-            "vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report"
+          "id, first_name, email, verified, car_type, phone, license_number, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report, id_number, license_plate"
         )
         .eq("verified", false);
 
@@ -55,65 +38,7 @@ function DriverKYCUnverified() {
         setError("Error fetching drivers");
         console.error("Error fetching drivers:", error);
       } else {
-        console.log("Raw driver data:", data);
-
-        // Map over each driver and transform the image fields to public URLs.
-        // Also, transform the verified field into a React element with appropriate color.
-        const driversWithImages = data.map((driver) => {
-          return {
-            ...driver,
-            national_id_front:
-              driver.national_id_front &&
-              supabase.storage
-                .from("driver-images")
-                .getPublicUrl(driver.national_id_front).publicUrl,
-            national_id_back:
-              driver.national_id_back &&
-              supabase.storage
-                .from("driver-images")
-                .getPublicUrl(driver.national_id_back).publicUrl,
-            psv_badge:
-              driver.psv_badge &&
-              supabase.storage
-                .from("driver-images")
-                .getPublicUrl(driver.psv_badge).publicUrl,
-            vehicle_registration:
-              driver.vehicle_registration &&
-              supabase.storage
-                .from("driver-images")
-                .getPublicUrl(driver.vehicle_registration).publicUrl,
-            vehicle_picture_front:
-              driver.vehicle_picture_front &&
-              supabase.storage
-                .from("driver-images")
-                .getPublicUrl(driver.vehicle_picture_front).publicUrl,
-            vehicle_picture_back:
-              driver.vehicle_picture_back &&
-              supabase.storage
-                .from("driver-images")
-                .getPublicUrl(driver.vehicle_picture_back).publicUrl,
-            psv_car_insurance:
-              driver.psv_car_insurance &&
-              supabase.storage
-                .from("driver-images")
-                .getPublicUrl(driver.psv_car_insurance).publicUrl,
-            inspection_report:
-              driver.inspection_report &&
-              supabase.storage
-                .from("driver-images")
-                .getPublicUrl(driver.inspection_report).publicUrl,
-
-            // Replace the verified field with a React element for display in the table
-            verified: driver.verified ? (
-              <span className="text-green-500 font-bold">VERIFIED</span>
-            ) : (
-              <span className="text-red-500 font-bold">UNVERIFIED</span>
-            )
-          };
-        });
-
-        console.log("Drivers with public URLs:", driversWithImages);
-        setDrivers(driversWithImages);
+        setDrivers(data);
       }
       setLoading(false);
     }
@@ -121,9 +46,7 @@ function DriverKYCUnverified() {
     fetchDrivers();
   }, []);
 
-  // Handle row click to open the modal with selected driver's details
   const handleRowClick = (driver) => {
-    console.log("Driver clicked:", driver);
     setSelectedDriver(driver);
   };
 
@@ -131,7 +54,35 @@ function DriverKYCUnverified() {
     setSelectedDriver(null);
   };
 
-  // Action handlers for Approve and Reject
+  // const handleApprove = async () => {
+  //   if (!selectedDriver) return;
+  
+  //   try {
+  //     const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
+  //       method: "PATCH", // Or "PUT" depending on your backend setup
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ id: selectedDriver.id }),
+  //     });
+  
+  //     const data = await response.json();
+  
+  //     if (!response.ok) {
+  //       throw new Error(data.error || "Failed to verify driver");
+  //     }
+  
+  //     // Update the local state to reflect the verified status
+  //     setDrivers((prevDrivers) =>
+  //       prevDrivers.map((driver) =>
+  //         driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
+  //       )
+  //     );
+  
+  //     handleCloseModal();
+  //   } catch (error) {
+  //     console.error("Error verifying driver:", error);
+  //     alert("Failed to verify driver.");
+  //   }
+  // };
   const handleApprove = async () => {
     if (!selectedDriver) return;
 
@@ -195,16 +146,72 @@ function DriverKYCUnverified() {
       alert("Failed to restrict driver.");
     }
   };
-
-  // Filter drivers by first name based on search query
+  
+  // Filter drivers by the search query (by name)
   const filteredDrivers = drivers.filter((driver) =>
     driver.first_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
+
+  // Prepare image data for the carousel (excluding license_number)
+  const imageData = selectedDriver
+    ? [
+        { label: "Driving License", src: selectedDriver.driving_license },
+        { label: "National ID Front", src: selectedDriver.national_id_front },
+        { label: "National ID Back", src: selectedDriver.national_id_back },
+        { label: "PSV Badge", src: selectedDriver.psv_badge },
+        {
+          label: "Vehicle Registration",
+          src: selectedDriver.vehicle_registration
+        },
+        {
+          label: "Vehicle Picture Front",
+          src: selectedDriver.vehicle_picture_front
+        },
+        {
+          label: "Vehicle Picture Back",
+          src: selectedDriver.vehicle_picture_back
+        },
+        {
+          label: "PSV Car Insurance",
+          src: selectedDriver.psv_car_insurance
+        },
+        { label: "Inspection Report", src: selectedDriver.inspection_report }
+      ]
+    : [];
+
+  // Log image URLs for debugging
+  console.log("Selected Driver Image URLs:", imageData);
+
+  // Main slider (large images)
+  const mainSliderSettings = {
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    arrows: true,
+    fade: false,
+    dots: false,
+    infinite: true,
+    speed: 500,
+    asNavFor: thumbSlider // Link to thumbnail slider
+  };
+
+  // Thumbnail slider (small images)
+  const thumbSliderSettings = {
+    slidesToShow: 5, // Number of thumbnails visible
+    slidesToScroll: 1,
+    dots: false,
+    infinite: true,
+    speed: 500,
+    centerMode: false,
+    focusOnSelect: true,
+    asNavFor: mainSlider, // Link back to main slider
+    arrows: true
+  };
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-4">Drivers</h1>
+
+      {/* Search Field */}
       <div className="mb-4">
         <input
           type="text"
@@ -233,132 +240,97 @@ function DriverKYCUnverified() {
         title="Driver Details"
       >
         {selectedDriver && (
-          <DriverDetailModalContent
-            driver={selectedDriver}
-            imageFields={imageFields}
-            onApprove={handleApprove}
-            onReject={handleRestrict}
-          />
+          <div>
+            <p>
+              <strong>Name:</strong> {selectedDriver.first_name}
+            </p>
+            <p>
+              <strong>Email:</strong> {selectedDriver.email}
+            </p>
+            <p>
+              <strong>Phone:</strong> {selectedDriver.phone}
+            </p>
+            <p>
+              <strong>License Number:</strong> {selectedDriver.license_number}
+            </p>
+            <p>
+              <strong>Status:</strong>{" "}
+              {selectedDriver.verified === true
+                ? "Approved"
+                : selectedDriver.verified === false
+                ? "Rejected"
+                : "Pending"}
+            </p>
+            <p>
+              <strong>Car Type:</strong> {selectedDriver.car_type}
+            </p>
+
+            {/* TWO-PART CAROUSEL (Main + Thumbnails) */}
+            <div className="mt-4">
+              {/* Main Slider */}
+              <Slider
+                {...mainSliderSettings}
+                ref={(slider) => setMainSlider(slider)}
+              >
+                {imageData.map((img, index) => (
+                  <div key={index} style={{ textAlign: "center" }}>
+                    <img
+                      src={img.src}
+                      alt={img.label}
+                      loading="eager"
+                      style={{
+                        maxWidth: "65%",
+                        borderRadius:"10px",
+                        height: "auto",
+                        margin: "0 auto"
+                      }}
+                    />
+                    <p style={{ marginTop: "10px" }}>{img.label}</p>
+                  </div>
+                ))}
+              </Slider>
+
+              {/* Thumbnail Slider */}
+              <div style={{ marginTop: "10px" }}>
+                <Slider
+                  {...thumbSliderSettings}
+                  ref={(slider) => setThumbSlider(slider)}
+                >
+                  {imageData.map((img, index) => (
+                    <div key={index} style={{ padding: "0 5px" }}>
+                      <img
+                        src={img.src}
+                        alt={img.label}
+                        loading="eager"
+                        style={{
+                          width: "100%",
+                          height: "auto",
+                          cursor: "pointer",
+                          border: "1px solid #ccc"
+                        }}
+                      />
+                    </div>
+                  ))}
+                </Slider>
+              </div>
+            </div>
+
+            {/* Single Restrict Button */}
+            <div className="flex space-x-4 mt-4">
+              {/* <button className="bg-green-500 p-4 rounded-sm" onClick={handleApprove} variant="warning">
+                APPROVE DRIVER
+              </button> */}
+              <Button onClick={handleApprove}>APPROVE DRIVER</Button>
+              <Button onClick={handleRestrict} variant="danger">
+                RESTRICT DRIVER
+              </Button>
+
+            </div>
+          </div>
         )}
       </Modal>
     </div>
   );
 }
 
-export default DriverKYCUnverified;
-
-// Component to display driver details and the two-part carousel of images
-function DriverDetailModalContent({
-  driver,
-  imageFields,
-  onApprove,
-  onReject
-}) {
-  // Build an array of images using imageFields and driver data
-  const images = imageFields
-    .map((field) => ({
-      label: field.label,
-      url: driver[field.key]
-    }))
-    .filter((img) => !!img.url);
-
-  // Two-part carousel state for react-slick
-  const [mainSlider, setMainSlider] = useState(null);
-  const [thumbSlider, setThumbSlider] = useState(null);
-  // Slider settings for main slider
-  const mainSliderSettings = {
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    arrows: true,
-    fade: false,
-    dots: false,
-    infinite: true,
-    speed: 500,
-    asNavFor: thumbSlider
-  };
-
-  // Slider settings for thumbnail slider
-  const thumbSliderSettings = {
-    slidesToShow: 5,
-    slidesToScroll: 1,
-    arrows: true,
-    focusOnSelect: true,
-    infinite: true,
-    speed: 500,
-    asNavFor: mainSlider
-  };
-
-  return (
-    <div>
-      <p>
-        <strong>Name:</strong> {driver.first_name}
-      </p>
-      <p>
-        <strong>Email:</strong> {driver.email}
-      </p>
-      <p className="mt-2">
-        <strong>Status:</strong>{" "}
-        {driver.verified}
-      </p>
-
-      {/* Two-part Carousel */}
-      {images.length > 0 ? (
-        <div className="mt-4">
-          {/* Main Slider */}
-          <Slider
-            {...mainSliderSettings}
-            ref={(slider) => setMainSlider(slider)}
-          >
-            {images.map((img, index) => (
-              <div key={index} style={{ textAlign: "center" }}>
-                <img
-                  src={img.url}
-                  alt={img.label}
-                  loading="eager"
-                  style={{ maxWidth: "100%", height: "auto", margin: "0 auto" }}
-                />
-                <p style={{ marginTop: "10px" }}>{img.label}</p>
-              </div>
-            ))}
-          </Slider>
-          {/* Thumbnail Slider */}
-          <div style={{ marginTop: "10px" }}>
-            <Slider
-              {...thumbSliderSettings}
-              ref={(slider) => setThumbSlider(slider)}
-            >
-              {images.map((img, index) => (
-                <div key={index} style={{ padding: "0 5px" }}>
-                  <img
-                    src={img.url}
-                    alt={img.label}
-                    loading="eager"
-                    style={{
-                      width: "70%",
-                      borderRadius:"20px",
-                      height: "auto",
-                      cursor: "pointer",
-                      border: "1px solid #ccc"
-                    }}
-                  />
-                </div>
-              ))}
-            </Slider>
-          </div>
-        </div>
-      ) : (
-        <p className="mt-4 text-sm text-gray-400">No images available</p>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex space-x-4 mt-6">
-        <Button onClick={onApprove} variant="primary">
-          Approve
-        </Button>
-        <Button onClick={onReject} variant="danger">
-          Reject
-        </Button>
-      </div>
-    </div>
-  );
-}
+export default Drivers;
