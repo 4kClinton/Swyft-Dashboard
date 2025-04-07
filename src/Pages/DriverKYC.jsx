@@ -10,8 +10,7 @@ import "slick-carousel/slick/slick-theme.css";
 
 const user = localStorage.getItem("data");
 const data = localStorage.getItem("user");
-console.log(user);
-console.log(data.email);
+
 
 
 // Table columns: note that "driving_license" has been removed.
