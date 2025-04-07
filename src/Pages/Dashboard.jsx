@@ -64,8 +64,8 @@ function Dashboard() {
     // -------------------------
     const { data: driversData, error: driverError } = await supabase
       .from("drivers")
-      .select("id, created_at")
-      .gte("created_at", oneWeekAgo.toISOString());
+      .select("id, join_date")
+      .gte("join_date", oneWeekAgo.toISOString());
 
     if (driverError) {
       console.error("Error fetching driver sign ups:", driverError);
@@ -73,7 +73,7 @@ function Dashboard() {
       setDriverSignUps(driversData.length);
       const driverByDay = {};
       driversData.forEach((item) => {
-        const day = new Date(item.created_at).toISOString().slice(0, 10);
+        const day = new Date(item.join_date).toISOString().slice(0, 10);
         driverByDay[day] = (driverByDay[day] || 0) + 1;
       });
       const driverDataArray = Object.keys(driverByDay)
@@ -84,22 +84,27 @@ function Dashboard() {
         .sort((a, b) => new Date(a.first_name) - new Date(b.first_name));
       setDriverSignUpData(driverDataArray);
     }
-
+    
     // -------------------------
     // Customers sign ups
     // -------------------------
     const { data: customersData, error: customerError } = await supabase
-      .from("customers")
-      .select("id, created_at")
-      .gte("created_at", oneWeekAgo.toISOString());
+    .from("customers")
+    .select("id, join_date")
+    .gte("join_date", oneWeekAgo.toISOString());
 
+      
     if (customerError) {
       console.error("Error fetching customer sign ups:", customerError);
     } else if (customersData) {
       setCustomerSignUps(customersData.length);
       const customerByDay = {};
       customersData.forEach((item) => {
-        const day = new Date(item.created_at).toISOString().slice(0, 10);
+        if (!item.join_date) {
+          console.warn("Missing join_date in item:", item);
+          return;
+        }
+        const day = new Date(item.join_date).toISOString().slice(0, 10);
         customerByDay[day] = (customerByDay[day] || 0) + 1;
       });
       const customerDataArray = Object.keys(customerByDay)

@@ -111,7 +111,7 @@ function SuperAdminCockpit() {
       const { data: driverSignups } = await supabase
         .from("drivers")
         .select("id")
-        .gte("created_at", oneWeekAgo.toISOString());
+        .gte("join_date", oneWeekAgo.toISOString());
       if (driverSignups) driverCount = driverSignups.length;
 
       // Customer signups
@@ -119,7 +119,7 @@ function SuperAdminCockpit() {
       const { data: customerSignups } = await supabase
         .from("customers")
         .select("id")
-        .gte("created_at", oneWeekAgo.toISOString());
+        .gte("join_date", oneWeekAgo.toISOString());
       if (customerSignups) customerCount = customerSignups.length;
 
       setNewUserSignups(driverCount + customerCount);
