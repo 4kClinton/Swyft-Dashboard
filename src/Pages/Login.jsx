@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { supabase } from "../supabaseClient";
 import Button from "../components/Button";
+import { data } from "autoprefixer";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -18,9 +19,11 @@ function Login() {
     } else if (data.user) {
       // Record login activity here if needed (e.g., insert into a login_activity table)
       localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("data", JSON.stringify(data.session));
       window.location.href = "/"; // redirect to Dashboard (or your desired route)
     }
   };
+  
 
   return (
     <div className="flex h-screen items-center justify-center bg-gray-900 text-white">

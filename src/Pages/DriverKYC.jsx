@@ -8,6 +8,12 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+const user = localStorage.getItem("data");
+const data = localStorage.getItem("user");
+console.log(user);
+console.log(data.email);
+
+
 // Table columns: note that "driving_license" has been removed.
 const columns = ["id", "first_name", "email", "verified"];
 
@@ -34,7 +40,7 @@ function DriverKYCUnverified() {
     async function fetchDrivers() {
       setLoading(true);
       setError(null);
-      
+
 
       // Fetch all drivers (verified and unverified) so we can display the verified status correctly
       const { data, error } = await supabase
@@ -163,28 +169,25 @@ function DriverKYCUnverified() {
 
 
     try {
+      
       const response = await fetch(
-        "https://swyft-backend-client-nine.vercel.app/driver/unverify",
+        `https://swyft-backend-client-nine.vercel.app/driver_delete/${selectedDriver.id}`,
         {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: selectedDriver.id })
+          method: "DELETE",
+          headers: { 
+            "Content-Type": "application/json"
+          }
         }
       );
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Failed to unverify (restrict) driver");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to unverify (restrict) driver");
       }
 
       // Update local state to reflect the verified status
       setDrivers((prevDrivers) =>
-        prevDrivers.map((driver) =>
-          driver.id === selectedDriver.id
-            ? { ...driver, verified: false }
-            : driver
-        )
+        prevDrivers.filter((driver) => driver.id !== selectedDriver.id)
       );
 
       handleCloseModal();
@@ -192,7 +195,6 @@ function DriverKYCUnverified() {
       console.error("Error restricting driver:", error);
       alert("Failed to restrict driver.");
     }
-
   };
 
   // Filter drivers by first name based on search query
