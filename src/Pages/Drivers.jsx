@@ -31,7 +31,8 @@ function Drivers() {
         .from("drivers")
         .select(
           "id, first_name, email, verified, car_type, phone, license_number, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report, id_number, license_plate"
-        );
+        )
+        .eq("verified", true);
 
       if (error) {
         setError("Error fetching drivers");
@@ -53,6 +54,36 @@ function Drivers() {
     setSelectedDriver(null);
   };
 
+  // const handleApprove = async () => {
+  //   if (!selectedDriver) return;
+  
+  //   try {
+  //     const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
+  //       method: "PATCH", // Or "PUT" depending on your backend setup
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ id: selectedDriver.id }),
+  //     });
+  
+  //     const data = await response.json();
+  
+  //     if (!response.ok) {
+  //       throw new Error(data.error || "Failed to verify driver");
+  //     }
+  
+  //     // Update the local state to reflect the verified status
+  //     setDrivers((prevDrivers) =>
+  //       prevDrivers.map((driver) =>
+  //         driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
+  //       )
+  //     );
+  
+  //     handleCloseModal();
+  //   } catch (error) {
+  //     console.error("Error verifying driver:", error);
+  //     alert("Failed to verify driver.");
+  //   }
+  // };
+
   // Single function to restrict (previously "reject") a driver
   const handleRestrict = async () => {
     if (!selectedDriver) return;
@@ -66,6 +97,7 @@ function Drivers() {
           body: JSON.stringify({ id: selectedDriver.id })
         }
       );
+
 
       const data = await response.json();
 
@@ -259,9 +291,14 @@ function Drivers() {
 
             {/* Single Restrict Button */}
             <div className="flex space-x-4 mt-4">
+              {/* <button className="bg-green-500 p-4 rounded-sm" onClick={handleApprove} variant="warning">
+                APPROVE DRIVER
+              </button> */}
+
               <Button onClick={handleRestrict} variant="danger">
                 RESTRICT DRIVER
               </Button>
+
             </div>
           </div>
         )}

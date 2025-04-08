@@ -18,7 +18,7 @@ const navItems = [
     subItems: [
       { name: "Customers", path: "/customers" },
       { name: "Drivers", path: "/drivers" },
-      { name: "Driver KYC", path: "/driver-kyc" }
+      { name: "Unverified", path: "/driver-kyc" }
     ]
   },
   {
