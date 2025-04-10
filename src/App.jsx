@@ -20,6 +20,7 @@ import "@fontsource/montserrat";
 import "./index.css";
 import ImageGallery from "./Pages/ImageGallery.jsx"; // Component with the images
 import ZoomedImagePage from "./Pages/ZoomedImagePage.jsx";
+import Customers from "./Pages/Customers.jsx";
 
 // A simple ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -57,6 +58,7 @@ function App() {
                       <Route path="/commissions" element={<Commissions />} />
                       <Route path="/marketing" element={<Marketing />} />
                       <Route path="/driver-kyc" element={<DriverKYC />} />
+                      <Route path="/customers" element={<Customers />} />
                     </Routes>
                   </div>
                 </div>
