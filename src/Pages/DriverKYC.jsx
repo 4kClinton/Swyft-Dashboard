@@ -1,8 +1,5 @@
 // src/pages/Drivers.jsx
-
 import React, { useState, useEffect, useRef } from "react";
-
-
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
@@ -11,15 +8,10 @@ import Slider from "react-slick";
 import Lightbox from "yet-another-react-lightbox";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 
 const columns = ["first_name", "email"];
-
-import "./Drivers.css";
-
-
 
 function Drivers() {
   const [drivers, setDrivers] = useState([]);
@@ -32,14 +24,9 @@ function Drivers() {
   const mainSlider = useRef();
   const thumbSlider = useRef();
 
-  // Slider references
-  const [mainSlider, setMainSlider] = useState(null);
-  const [thumbSlider, setThumbSlider] = useState(null);
-
   useEffect(() => {
     const fetchDrivers = async () => {
       setLoading(true);
-
       try {
         const { data, error } = await supabase
           .from("drivers")
@@ -60,54 +47,20 @@ function Drivers() {
         console.error(err);
       } finally {
         setLoading(false);
-
       }
     };
 
     fetchDrivers();
   }, []);
 
-
   const handleRowClick = (driver) => setSelectedDriver(driver);
   const handleCloseModal = () => setSelectedDriver(null);
-
 
 const handleApprove = async () => {
   if (!selectedDriver) return;
 
   try {
     console.log("Sending ID to backend:", selectedDriver.id); // Log to check ID
-
-  // const handleApprove = async () => {
-  //   if (!selectedDriver) return;
-  
-  //   try {
-  //     const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
-  //       method: "PATCH", // Or "PUT" depending on your backend setup
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ id: selectedDriver.id }),
-  //     });
-  
-  //     const data = await response.json();
-  
-  //     if (!response.ok) {
-  //       throw new Error(data.error || "Failed to verify driver");
-  //     }
-  
-  //     // Update the local state to reflect the verified status
-  //     setDrivers((prevDrivers) =>
-  //       prevDrivers.map((driver) =>
-  //         driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
-  //       )
-  //     );
-  
-  //     handleCloseModal();
-  //   } catch (error) {
-  //     console.error("Error verifying driver:", error);
-  //     alert("Failed to verify driver.");
-  //   }
-  // };
-
 
     const response = await fetch(
       "https://swyft-backend-client-nine.vercel.app/driver/verify", // Backend URL
@@ -139,7 +92,7 @@ const handleApprove = async () => {
     handleCloseModal(); // Close modal after success
   } catch (error) {
     console.error("Error verifying driver:", error);
-    alert("Failed to verify this driver.");
+    alert("Failed to verify driver.");
   }
 };
 
@@ -164,7 +117,6 @@ const handleRestrict = async () => {
       );
     }
 
-
     // Update local state to reflect the verified status
     setDrivers((prevDrivers) =>
       prevDrivers.filter((driver) => driver.id !== selectedDriver.id)
@@ -181,16 +133,6 @@ const handleRestrict = async () => {
     d.first_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-
-  };
-  
-  // Filter drivers by the search query (by name)
-  const filteredDrivers = drivers.filter((driver) =>
-    driver.first_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Prepare image data for the carousel (excluding license_number)
-
   const imageData = selectedDriver
     ? [
         { label: "Driving License", src: selectedDriver.driving_license },
@@ -204,10 +146,7 @@ const handleRestrict = async () => {
           label: "Vehicle Picture Back",
           src: selectedDriver.vehicle_picture_back
         },
-
-        { label: "Inspection Report", src: selectedDriver.inspection_report },
-      { label: "Car Insurance", src: selectedDriver.car_insurance },
-
+        { label: "Car Insurance", src: selectedDriver.car_insurance },
         { label: "Inspection Report", src: selectedDriver.inspection_report },
         {
           label: "Company Reg Certificate",
@@ -222,12 +161,6 @@ const handleRestrict = async () => {
       ]
     : [];
 
-
-  // Log image URLs for debugging
-  console.log("Selected Driver Image URLs:", imageData);
-
-  // Main slider (large images)
-
   const mainSliderSettings = {
     slidesToShow: 1,
     slidesToScroll: 1,
@@ -236,31 +169,24 @@ const handleRestrict = async () => {
     dots: false,
     infinite: true,
     speed: 500,
-
     asNavFor: thumbSlider.current
   };
 
   const thumbSliderSettings = {
     slidesToShow: 5,
-
     slidesToScroll: 1,
     dots: false,
     infinite: true,
     speed: 500,
     centerMode: false,
     focusOnSelect: true,
-
     asNavFor: mainSlider.current,
-
-    asNavFor: mainSlider, // Link back to main slider
-
     arrows: true
   };
 
   return (
     <div className="p-5 max-h-screen overflow-y-auto">
       <h1 className="text-3xl font-bold mb-4">Drivers</h1>
-
 
       <input
         type="text"
@@ -303,18 +229,12 @@ const handleRestrict = async () => {
             </p>
             <p>
               <strong>Status:</strong>{" "}
-
-              {selectedDriver.verified === true
-                ? "Approved"
-                : selectedDriver.verified === false
-                ? "Rejected"
-                : "Pending"}
-
+              {selectedDriver.verified ? "Approved" : "Pending"}
             </p>
             <p>
               <strong>Car Type:</strong> {selectedDriver.car_type}
             </p>
-             <p>
+            <p>
               <strong>Vehicle Make:</strong> {selectedDriver.vehicle_make}
             </p>
             <p>
@@ -326,7 +246,6 @@ const handleRestrict = async () => {
             <p>
               <strong>Vehicle Color:</strong> {selectedDriver.vehicle_color}
             </p>
-
 
             <div className="mt-4">
               <Slider {...mainSliderSettings} ref={mainSlider}>
@@ -364,17 +283,14 @@ const handleRestrict = async () => {
             </div>
 
             <div className="flex space-x-4 mt-4">
-
               <Button onClick={handleApprove}>APPROVE DRIVER</Button>
               <Button onClick={handleRestrict} variant="danger">
                 RESTRICT DRIVER
               </Button>
-
             </div>
           </div>
         )}
       </Modal>
-
 
       {isLightboxOpen && (
         <Lightbox
@@ -385,7 +301,6 @@ const handleRestrict = async () => {
           plugins={[Zoom]}
         />
       )}
-
     </div>
   );
 }
