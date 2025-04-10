@@ -186,7 +186,7 @@ const handleRestrict = async () => {
 
   return (
     <div className="p-5 max-h-screen overflow-y-auto">
-      <h1 className="text-3xl font-bold mb-4">Drivers</h1>
+      <h1 className="text-3xl font-bold mb-4">Drivers KYC</h1>
 
       <input
         type="text"
