@@ -5,11 +5,14 @@ import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { supabase } from "../supabaseClient";
 import Slider from "react-slick";
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import "yet-another-react-lightbox/styles.css";
 import "./Drivers.css";
 
-const columns = ["first_name", "Email"];
+const columns = ["first_name", "email"];
 
 function Drivers() {
   const [drivers, setDrivers] = useState([]);
@@ -22,6 +25,9 @@ function Drivers() {
   const [mainSlider, setMainSlider] = useState(null);
   const [thumbSlider, setThumbSlider] = useState(null);
 
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
   useEffect(() => {
     async function fetchDrivers() {
       setLoading(true);
@@ -30,7 +36,11 @@ function Drivers() {
       const { data, error } = await supabase
         .from("drivers")
         .select(
-          "id, first_name, email, verified, car_type, phone, license_number, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report, id_number, license_plate"
+          `id, first_name, email, verified, car_type, phone, driving_license, 
+           national_id_front, national_id_back, vehicle_picture_front, vehicle_picture_back,
+           car_insurance, inspection_report, company_reg_certificate, kra, passport_photo,
+           certificate_conduct, vehicle_make, vehicle_model, vehicle_year, vehicle_color,
+           id_number, license_plate`
         )
         .eq("verified", true);
 
@@ -54,43 +64,13 @@ function Drivers() {
     setSelectedDriver(null);
   };
 
-  // const handleApprove = async () => {
-  //   if (!selectedDriver) return;
-  
-  //   try {
-  //     const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
-  //       method: "PATCH", // Or "PUT" depending on your backend setup
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ id: selectedDriver.id }),
-  //     });
-  
-  //     const data = await response.json();
-  
-  //     if (!response.ok) {
-  //       throw new Error(data.error || "Failed to verify driver");
-  //     }
-  
-  //     // Update the local state to reflect the verified status
-  //     setDrivers((prevDrivers) =>
-  //       prevDrivers.map((driver) =>
-  //         driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
-  //       )
-  //     );
-  
-  //     handleCloseModal();
-  //   } catch (error) {
-  //     console.error("Error verifying driver:", error);
-  //     alert("Failed to verify driver.");
-  //   }
-  // };
-
   // Single function to restrict (previously "reject") a driver
   const handleRestrict = async () => {
     if (!selectedDriver) return;
 
     try {
       const response = await fetch(
-        "https://swyft-backend-client-nine.vercel.app/driver/unverify",
+        "http://127.0.0.1:5000/driver/unverify",
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -132,11 +112,6 @@ function Drivers() {
         { label: "Driving License", src: selectedDriver.driving_license },
         { label: "National ID Front", src: selectedDriver.national_id_front },
         { label: "National ID Back", src: selectedDriver.national_id_back },
-        { label: "PSV Badge", src: selectedDriver.psv_badge },
-        {
-          label: "Vehicle Registration",
-          src: selectedDriver.vehicle_registration
-        },
         {
           label: "Vehicle Picture Front",
           src: selectedDriver.vehicle_picture_front
@@ -145,11 +120,18 @@ function Drivers() {
           label: "Vehicle Picture Back",
           src: selectedDriver.vehicle_picture_back
         },
+        { label: "Car Insurance", src: selectedDriver.car_insurance },
+        { label: "Inspection Report", src: selectedDriver.inspection_report },
         {
-          label: "PSV Car Insurance",
-          src: selectedDriver.psv_car_insurance
+          label: "Company Reg Certificate",
+          src: selectedDriver.company_reg_certificate
         },
-        { label: "Inspection Report", src: selectedDriver.inspection_report }
+        { label: "KRA", src: selectedDriver.kra },
+        { label: "Passport Photo", src: selectedDriver.passport_photo },
+        {
+          label: "Certificate of Conduct",
+          src: selectedDriver.certificate_conduct
+        }
       ]
     : [];
 
@@ -183,7 +165,7 @@ function Drivers() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Drivers</h1>
+      <h1 className="text-3xl font-bold mb-4 max-h-screen overflow-y-auto">Drivers</h1>
 
       {/* Search Field */}
       <div className="mb-4">
@@ -225,7 +207,7 @@ function Drivers() {
               <strong>Phone:</strong> {selectedDriver.phone}
             </p>
             <p>
-              <strong>License Number:</strong> {selectedDriver.license_number}
+              <strong>License Plate:</strong> {selectedDriver.license_plate}
             </p>
             <p>
               <strong>Status:</strong>{" "}
@@ -237,6 +219,18 @@ function Drivers() {
             </p>
             <p>
               <strong>Car Type:</strong> {selectedDriver.car_type}
+            </p>
+            <p>
+              <strong>Vehicle Make:</strong> {selectedDriver.vehicle_make}
+            </p>
+            <p>
+              <strong>Vehicle Model:</strong> {selectedDriver.vehicle_model}
+            </p>
+            <p>
+              <strong>Vehicle Year:</strong> {selectedDriver.vehicle_year}
+            </p>
+            <p>
+              <strong>Vehicle Color:</strong> {selectedDriver.vehicle_color}
             </p>
 
             {/* TWO-PART CAROUSEL (Main + Thumbnails) */}
@@ -254,9 +248,13 @@ function Drivers() {
                       loading="eager"
                       style={{
                         maxWidth: "65%",
-                        borderRadius:"10px",
+                        borderRadius: "10px",
                         height: "auto",
                         margin: "0 auto"
+                      }}
+                      onClick={() => {
+                        setLightboxIndex(index);
+                        setIsLightboxOpen(true);
                       }}
                     />
                     <p style={{ marginTop: "10px" }}>{img.label}</p>
@@ -291,18 +289,24 @@ function Drivers() {
 
             {/* Single Restrict Button */}
             <div className="flex space-x-4 mt-4">
-              {/* <button className="bg-green-500 p-4 rounded-sm" onClick={handleApprove} variant="warning">
-                APPROVE DRIVER
-              </button> */}
-
               <Button onClick={handleRestrict} variant="danger">
                 RESTRICT DRIVER
               </Button>
-
             </div>
           </div>
         )}
       </Modal>
+
+      {/* Lightbox Viewer */}
+      {isLightboxOpen && (
+        <Lightbox
+          open={isLightboxOpen}
+          close={() => setIsLightboxOpen(false)}
+          slides={imageData.map((img) => ({ src: img.src }))}
+          index={lightboxIndex}
+          plugins={[Zoom]}
+        />
+      )}
     </div>
   );
 }
