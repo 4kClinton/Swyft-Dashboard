@@ -1,15 +1,25 @@
 // src/pages/Drivers.jsx
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
+
+
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { supabase } from "../supabaseClient";
 import Slider from "react-slick";
+import Lightbox from "yet-another-react-lightbox";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+
+import "yet-another-react-lightbox/styles.css";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+
+const columns = ["first_name", "email"];
+
 import "./Drivers.css";
 
-const columns = ["first_name", "Email"];
+
 
 function Drivers() {
   const [drivers, setDrivers] = useState([]);
@@ -17,45 +27,56 @@ function Drivers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const mainSlider = useRef();
+  const thumbSlider = useRef();
 
   // Slider references
   const [mainSlider, setMainSlider] = useState(null);
   const [thumbSlider, setThumbSlider] = useState(null);
 
   useEffect(() => {
-    async function fetchDrivers() {
+    const fetchDrivers = async () => {
       setLoading(true);
-      setError(null);
 
-      const { data, error } = await supabase
-        .from("drivers")
-        .select(
-         `id, first_name, email, verified, car_type, phone, driving_license, 
-           national_id_front, national_id_back, vehicle_picture_front, vehicle_picture_back,
-           car_insurance, inspection_report, company_reg_certificate, kra, passport_photo,
-           certificate_conduct, vehicle_make, vehicle_model, vehicle_year, vehicle_color,
-           id_number, license_plate`)
-        .eq("verified", false);
+      try {
+        const { data, error } = await supabase
+          .from("drivers")
+          .select(
+            `id, first_name, email, verified, car_type, phone, driving_license, 
+            national_id_front, national_id_back, vehicle_picture_front, 
+            vehicle_picture_back, car_insurance, inspection_report, 
+            company_reg_certificate, kra, passport_photo, certificate_conduct,
+            vehicle_make, vehicle_model, vehicle_year, vehicle_color,
+            id_number, license_plate`
+          )
+          .eq("verified", false);
 
-      if (error) {
-        setError("Error fetching drivers");
-        console.error("Error fetching drivers:", error);
-      } else {
+        if (error) throw error;
         setDrivers(data);
+      } catch (err) {
+        setError("Error fetching drivers");
+        console.error(err);
+      } finally {
+        setLoading(false);
+
       }
-      setLoading(false);
-    }
+    };
 
     fetchDrivers();
   }, []);
 
-  const handleRowClick = (driver) => {
-    setSelectedDriver(driver);
-  };
 
-  const handleCloseModal = () => {
-    setSelectedDriver(null);
-  };
+  const handleRowClick = (driver) => setSelectedDriver(driver);
+  const handleCloseModal = () => setSelectedDriver(null);
+
+
+const handleApprove = async () => {
+  if (!selectedDriver) return;
+
+  try {
+    console.log("Sending ID to backend:", selectedDriver.id); // Log to check ID
 
   // const handleApprove = async () => {
   //   if (!selectedDriver) return;
@@ -86,68 +107,81 @@ function Drivers() {
   //     alert("Failed to verify driver.");
   //   }
   // };
-  const handleApprove = async () => {
-    if (!selectedDriver) return;
 
-  
-    try {
-      const response = await fetch("https://swyft-backend-client-nine.vercel.app/driver/verify", {
-        method: "PATCH", // Or "PUT" depending on your backend setup
+
+    const response = await fetch(
+      "https://swyft-backend-client-nine.vercel.app/driver/verify", // Backend URL
+      {
+        method: "PATCH", // Or "PUT" depending on backend
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selectedDriver.id }),
-      });
-  
-      const data = await response.json();
-  
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to verify driver");
+        body: JSON.stringify({
+          id: selectedDriver.id, // Ensure the ID is passed correctly
+          verified: true
+        })
       }
-  
-      // Update the local state to reflect the verified status
-      setDrivers((prevDrivers) =>
-        prevDrivers.map((driver) =>
-          driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
-        )
-      );
-  
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error verifying driver:", error);
-      alert("Failed to verify driver.");
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to verify driver");
     }
-  };
 
-  const handleRestrict = async () => {
-    if (!selectedDriver) return;
+    console.log("Driver verified:", data);
 
+    // Update state if the request is successful
+    setDrivers((prevDrivers) =>
+      prevDrivers.map((driver) =>
+        driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
+      )
+    );
 
-    try {
-      
-      const response = await fetch(
-        `https://swyft-backend-client-nine.vercel.app/driver_delete/${selectedDriver.id}`,
-        {
-          method: "DELETE",
-          headers: { 
-            "Content-Type": "application/json"
-          }
+    handleCloseModal(); // Close modal after success
+  } catch (error) {
+    console.error("Error verifying driver:", error);
+    alert("Failed to verify driver.");
+  }
+};
+
+const handleRestrict = async () => {
+  if (!selectedDriver) return;
+
+  try {
+    const response = await fetch(
+      `https://swyft-backend-client-nine.vercel.app/driver_delete/${selectedDriver.id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json"
         }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to unverify (restrict) driver");
       }
+    );
 
-      // Update local state to reflect the verified status
-      setDrivers((prevDrivers) =>
-        prevDrivers.filter((driver) => driver.id !== selectedDriver.id)
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.message || "Failed to unverify (restrict) driver"
       );
-
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error restricting driver:", error);
-      alert("Failed to restrict driver.");
     }
+
+
+    // Update local state to reflect the verified status
+    setDrivers((prevDrivers) =>
+      prevDrivers.filter((driver) => driver.id !== selectedDriver.id)
+    );
+
+    handleCloseModal();
+  } catch (error) {
+    console.error("Error restricting driver:", error);
+    alert("Failed to restrict driver.");
+  }
+};
+
+  const filteredDrivers = drivers.filter((d) =>
+    d.first_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+
   };
   
   // Filter drivers by the search query (by name)
@@ -156,6 +190,7 @@ function Drivers() {
   );
 
   // Prepare image data for the carousel (excluding license_number)
+
   const imageData = selectedDriver
     ? [
         { label: "Driving License", src: selectedDriver.driving_license },
@@ -169,8 +204,10 @@ function Drivers() {
           label: "Vehicle Picture Back",
           src: selectedDriver.vehicle_picture_back
         },
+
         { label: "Inspection Report", src: selectedDriver.inspection_report },
       { label: "Car Insurance", src: selectedDriver.car_insurance },
+
         { label: "Inspection Report", src: selectedDriver.inspection_report },
         {
           label: "Company Reg Certificate",
@@ -185,10 +222,12 @@ function Drivers() {
       ]
     : [];
 
+
   // Log image URLs for debugging
   console.log("Selected Driver Image URLs:", imageData);
 
   // Main slider (large images)
+
   const mainSliderSettings = {
     slidesToShow: 1,
     slidesToScroll: 1,
@@ -197,36 +236,39 @@ function Drivers() {
     dots: false,
     infinite: true,
     speed: 500,
-    asNavFor: thumbSlider // Link to thumbnail slider
+
+    asNavFor: thumbSlider.current
   };
 
-  // Thumbnail slider (small images)
   const thumbSliderSettings = {
-    slidesToShow: 5, // Number of thumbnails visible
+    slidesToShow: 5,
+
     slidesToScroll: 1,
     dots: false,
     infinite: true,
     speed: 500,
     centerMode: false,
     focusOnSelect: true,
+
+    asNavFor: mainSlider.current,
+
     asNavFor: mainSlider, // Link back to main slider
+
     arrows: true
   };
 
   return (
-    <div>
+    <div className="p-5 max-h-screen overflow-y-auto">
       <h1 className="text-3xl font-bold mb-4">Drivers</h1>
 
-      {/* Search Field */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search drivers..."
-          className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+
+      <input
+        type="text"
+        placeholder="Search drivers..."
+        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white mb-4"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
 
       {loading ? (
         <p>Loading drivers...</p>
@@ -261,11 +303,13 @@ function Drivers() {
             </p>
             <p>
               <strong>Status:</strong>{" "}
+
               {selectedDriver.verified === true
                 ? "Approved"
                 : selectedDriver.verified === false
                 ? "Rejected"
                 : "Pending"}
+
             </p>
             <p>
               <strong>Car Type:</strong> {selectedDriver.car_type}
@@ -283,61 +327,44 @@ function Drivers() {
               <strong>Vehicle Color:</strong> {selectedDriver.vehicle_color}
             </p>
 
-            {/* TWO-PART CAROUSEL (Main + Thumbnails) */}
+
             <div className="mt-4">
-              {/* Main Slider */}
-              <Slider
-                {...mainSliderSettings}
-                ref={(slider) => setMainSlider(slider)}
-              >
-                {imageData.map((img, index) => (
-                  <div key={index} style={{ textAlign: "center" }}>
+              <Slider {...mainSliderSettings} ref={mainSlider}>
+                {imageData.map((img, idx) => (
+                  <div key={idx} className="text-center">
                     <img
                       src={img.src}
                       alt={img.label}
-                      loading="eager"
-                      style={{
-                        maxWidth: "65%",
-                        borderRadius:"10px",
-                        height: "auto",
-                        margin: "0 auto"
+                      className="w-72 h-48 object-cover rounded-lg cursor-zoom-in"
+                      onClick={() => {
+                        setLightboxIndex(idx);
+                        setIsLightboxOpen(true);
                       }}
                     />
-                    <p style={{ marginTop: "10px" }}>{img.label}</p>
+                    <p className="mt-2 text-sm">{img.label}</p>
                   </div>
                 ))}
               </Slider>
 
-              {/* Thumbnail Slider */}
-              <div style={{ marginTop: "10px" }}>
-                <Slider
-                  {...thumbSliderSettings}
-                  ref={(slider) => setThumbSlider(slider)}
-                >
-                  {imageData.map((img, index) => (
-                    <div key={index} style={{ padding: "0 5px" }}>
-                      <img
-                        src={img.src}
-                        alt={img.label}
-                        loading="eager"
-                        style={{
-                          width: "100%",
-                          height: "auto",
-                          cursor: "pointer",
-                          border: "1px solid #ccc"
-                        }}
-                      />
-                    </div>
-                  ))}
-                </Slider>
-              </div>
+              <Slider
+                {...thumbSliderSettings}
+                ref={thumbSlider}
+                className="mt-3"
+              >
+                {imageData.map((img, idx) => (
+                  <div key={idx} className="px-1">
+                    <img
+                      src={img.src}
+                      alt={img.label}
+                      className="w-24 h-20 object-cover cursor-pointer border border-gray-400"
+                    />
+                  </div>
+                ))}
+              </Slider>
             </div>
 
-            {/* Single Restrict Button */}
             <div className="flex space-x-4 mt-4">
-              {/* <button className="bg-green-500 p-4 rounded-sm" onClick={handleApprove} variant="warning">
-                APPROVE DRIVER
-              </button> */}
+
               <Button onClick={handleApprove}>APPROVE DRIVER</Button>
               <Button onClick={handleRestrict} variant="danger">
                 RESTRICT DRIVER
@@ -347,6 +374,18 @@ function Drivers() {
           </div>
         )}
       </Modal>
+
+
+      {isLightboxOpen && (
+        <Lightbox
+          open={isLightboxOpen}
+          close={() => setIsLightboxOpen(false)}
+          slides={imageData.map((img) => ({ src: img.src }))}
+          index={lightboxIndex}
+          plugins={[Zoom]}
+        />
+      )}
+
     </div>
   );
 }

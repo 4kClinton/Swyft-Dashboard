@@ -18,6 +18,10 @@ import Login from "./Pages/Login";
 import SuperAdminCockpit from "./Pages/SuperAdminCockpit";
 import "@fontsource/montserrat";
 import "./index.css";
+
+import ImageGallery from "./Pages/ImageGallery.jsx"; // Component with the images
+import ZoomedImagePage from "./Pages/ZoomedImagePage.jsx";
+
 import Customers from "./Pages/Customers.jsx";
 
 // A simple ProtectedRoute component
@@ -35,6 +39,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/superadmin" element={<SuperAdminCockpit />} />
+        <Route path="/image" element={<ImageGallery />} />
+        <Route path="/zoomed-image/:imageId" component={ZoomedImagePage} />
         <Route
           path="/*"
           element={
