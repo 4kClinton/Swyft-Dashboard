@@ -92,7 +92,7 @@ const handleApprove = async () => {
     handleCloseModal(); // Close modal after success
   } catch (error) {
     console.error("Error verifying driver:", error);
-    alert("Failed to verify driver.");
+    alert("Failed to verify this driver.");
   }
 };
 
