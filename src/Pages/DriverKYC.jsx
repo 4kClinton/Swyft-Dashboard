@@ -30,8 +30,11 @@ function Drivers() {
       const { data, error } = await supabase
         .from("drivers")
         .select(
-          "id, first_name, email, verified, car_type, phone, license_number, driving_license, national_id_front, national_id_back, psv_badge, vehicle_registration, vehicle_picture_front, vehicle_picture_back, psv_car_insurance, inspection_report, id_number, license_plate"
-        )
+         `id, first_name, email, verified, car_type, phone, driving_license, 
+           national_id_front, national_id_back, vehicle_picture_front, vehicle_picture_back,
+           car_insurance, inspection_report, company_reg_certificate, kra, passport_photo,
+           certificate_conduct, vehicle_make, vehicle_model, vehicle_year, vehicle_color,
+           id_number, license_plate`)
         .eq("verified", false);
 
       if (error) {
@@ -158,11 +161,6 @@ function Drivers() {
         { label: "Driving License", src: selectedDriver.driving_license },
         { label: "National ID Front", src: selectedDriver.national_id_front },
         { label: "National ID Back", src: selectedDriver.national_id_back },
-        { label: "PSV Badge", src: selectedDriver.psv_badge },
-        {
-          label: "Vehicle Registration",
-          src: selectedDriver.vehicle_registration
-        },
         {
           label: "Vehicle Picture Front",
           src: selectedDriver.vehicle_picture_front
@@ -171,11 +169,19 @@ function Drivers() {
           label: "Vehicle Picture Back",
           src: selectedDriver.vehicle_picture_back
         },
+        { label: "Inspection Report", src: selectedDriver.inspection_report },
+      { label: "Car Insurance", src: selectedDriver.car_insurance },
+        { label: "Inspection Report", src: selectedDriver.inspection_report },
         {
-          label: "PSV Car Insurance",
-          src: selectedDriver.psv_car_insurance
+          label: "Company Reg Certificate",
+          src: selectedDriver.company_reg_certificate
         },
-        { label: "Inspection Report", src: selectedDriver.inspection_report }
+        { label: "KRA", src: selectedDriver.kra },
+        { label: "Passport Photo", src: selectedDriver.passport_photo },
+        {
+          label: "Certificate of Conduct",
+          src: selectedDriver.certificate_conduct
+        }
       ]
     : [];
 
@@ -251,7 +257,7 @@ function Drivers() {
               <strong>Phone:</strong> {selectedDriver.phone}
             </p>
             <p>
-              <strong>License Number:</strong> {selectedDriver.license_number}
+              <strong>License Plate:</strong> {selectedDriver.license_plate}
             </p>
             <p>
               <strong>Status:</strong>{" "}
@@ -263,6 +269,18 @@ function Drivers() {
             </p>
             <p>
               <strong>Car Type:</strong> {selectedDriver.car_type}
+            </p>
+             <p>
+              <strong>Vehicle Make:</strong> {selectedDriver.vehicle_make}
+            </p>
+            <p>
+              <strong>Vehicle Model:</strong> {selectedDriver.vehicle_model}
+            </p>
+            <p>
+              <strong>Vehicle Year:</strong> {selectedDriver.vehicle_year}
+            </p>
+            <p>
+              <strong>Vehicle Color:</strong> {selectedDriver.vehicle_color}
             </p>
 
             {/* TWO-PART CAROUSEL (Main + Thumbnails) */}
