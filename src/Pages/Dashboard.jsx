@@ -235,16 +235,16 @@ function Dashboard() {
   /**
    * Handle card clicks to show detailed info in a modal.
    */
-  const handleCardClick = (detail) => {
+const handleCardClick = (detail) => {
     let content = detail;
     if (detail === "Detailed Driver Information") {
       content =
         onlineDrivers.length === 0
           ? "No drivers are currently online."
           : `Online Drivers:\n${onlineDrivers
-              .map((driver) => `Driver ID: ${driver.id}`)
+              .map((driver) => Driver Email: ${driver.email})
               .join("\n")}`;
-    }
+    }
     if (detail === "Detailed Driver Sign Up Information") {
       content =
         driverSignUpData.length === 0
