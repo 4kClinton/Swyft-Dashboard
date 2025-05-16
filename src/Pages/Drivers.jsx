@@ -1,4 +1,3 @@
-// src/pages/Drivers.jsx
 import React, { useState, useEffect } from "react";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
@@ -25,7 +24,6 @@ function Drivers() {
   const [mainSlider, setMainSlider] = useState(null);
   const [thumbSlider, setThumbSlider] = useState(null);
 
-  // Lightbox states
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
@@ -43,7 +41,6 @@ function Drivers() {
            certificate_conduct, vehicle_make, vehicle_model, vehicle_year, vehicle_color,
            id_number, license_plate`
         )
-        // Fetch only unverified drivers (change as needed)
         .eq("verified", true);
 
       if (error) {
@@ -66,7 +63,7 @@ function Drivers() {
     setSelectedDriver(null);
   };
 
-  // Single function to restrict (or unverify) a driver
+  // Restrict (unverify) a driver
   const handleRestrict = async () => {
     if (!selectedDriver) return;
 
@@ -76,7 +73,7 @@ function Drivers() {
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: selectedDriver.id })
+          body: JSON.stringify({ id: selectedDriver.id }),
         }
       );
 
@@ -115,29 +112,26 @@ function Drivers() {
         { label: "National ID Back", src: selectedDriver.national_id_back },
         {
           label: "Vehicle Picture Front",
-          src: selectedDriver.vehicle_picture_front
+          src: selectedDriver.vehicle_picture_front,
         },
         {
           label: "Vehicle Picture Back",
-          src: selectedDriver.vehicle_picture_back
+          src: selectedDriver.vehicle_picture_back,
         },
         { label: "Car Insurance", src: selectedDriver.car_insurance },
         { label: "Inspection Report", src: selectedDriver.inspection_report },
         {
           label: "Company Reg Certificate",
-          src: selectedDriver.company_reg_certificate
+          src: selectedDriver.company_reg_certificate,
         },
         { label: "KRA", src: selectedDriver.kra },
         { label: "Passport Photo", src: selectedDriver.passport_photo },
         {
           label: "Certificate of Conduct",
-          src: selectedDriver.certificate_conduct
-        }
+          src: selectedDriver.certificate_conduct,
+        },
       ]
     : [];
-
-  // Log image URLs for debugging
-  console.log("Selected Driver Image URLs:", imageData);
 
   // Main slider (large images)
   const mainSliderSettings = {
@@ -148,7 +142,7 @@ function Drivers() {
     dots: false,
     infinite: true,
     speed: 500,
-    asNavFor: thumbSlider // Link to thumbnail slider
+    asNavFor: thumbSlider, // Link to thumbnail slider
   };
 
   // Thumbnail slider (small images)
@@ -161,12 +155,14 @@ function Drivers() {
     centerMode: false,
     focusOnSelect: true,
     asNavFor: mainSlider, // Link back to main slider
-    arrows: true
+    arrows: true,
   };
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Drivers</h1>
+      <h1 className="text-3xl font-bold mb-4 max-h-screen overflow-y-auto">
+        Drivers
+      </h1>
 
       {/* Search Field */}
       <div className="mb-4">
@@ -251,7 +247,7 @@ function Drivers() {
                         maxWidth: "65%",
                         borderRadius: "10px",
                         height: "auto",
-                        margin: "0 auto"
+                        margin: "0 auto",
                       }}
                       onClick={() => {
                         setLightboxIndex(index);
@@ -279,7 +275,11 @@ function Drivers() {
                           width: "100%",
                           height: "auto",
                           cursor: "pointer",
-                          border: "1px solid #ccc"
+                          border: "1px solid #ccc",
+                        }}
+                        onClick={() => {
+                          setLightboxIndex(index);
+                          setIsLightboxOpen(true);
                         }}
                       />
                     </div>

@@ -14,6 +14,7 @@ import DriverKYC from "./Pages/DriverKYC"
 import Commissions from "./Pages/Commissions";
 import Settings from "./Pages/Settings";
 import Marketing from "./Pages/Marketing";
+import Insights from "./Pages/Insights";
 import Login from "./Pages/Login";
 import SuperAdminCockpit from "./Pages/SuperAdminCockpit";
 import "@fontsource/montserrat";
@@ -61,6 +62,7 @@ function App() {
                       <Route path="/marketing" element={<Marketing />} />
                       <Route path="/driver-kyc" element={<DriverKYC />} />
                       <Route path="/customers" element={<Customers />} />
+                      <Route path="/insights" element={<Insights />} />
                     </Routes>
                   </div>
                 </div>

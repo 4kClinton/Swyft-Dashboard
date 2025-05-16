@@ -41,7 +41,7 @@ function Dashboard() {
   const fetchOnlineDrivers = async () => {
     const { data: drivers, error } = await supabase
       .from("drivers")
-      .select("*")
+      .select("first_name, last_name")
       .eq("online", true);
 
     if (error) {
@@ -51,6 +51,7 @@ function Dashboard() {
       return drivers;
     }
   };
+  
 
   /**
    * Fetch sign ups data (for drivers and customers) from the past 7 days
@@ -242,9 +243,14 @@ function Dashboard() {
         onlineDrivers.length === 0
           ? "No drivers are currently online."
           : `Online Drivers:\n${onlineDrivers
-              .map((driver) => `Driver ID: ${driver.id}`)
+              .map(
+                (driver, index) =>
+                  `${index + 1}. ${driver.first_name} ${driver.last_name}`
+              )
               .join("\n")}`;
     }
+    
+    
     if (detail === "Detailed Driver Sign Up Information") {
       content =
         driverSignUpData.length === 0

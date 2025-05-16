@@ -1,4 +1,3 @@
-// src/pages/Drivers.jsx
 import React, { useState, useEffect, useRef } from "react";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
@@ -6,14 +5,14 @@ import Button from "../components/Button";
 import { supabase } from "../supabaseClient";
 import Slider from "react-slick";
 import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import "yet-another-react-lightbox/styles.css";
-import Zoom from "yet-another-react-lightbox/plugins/zoom";
 
 const columns = ["first_name", "email"];
 
-function Drivers() {
+function DriverKYC() {
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,78 +55,74 @@ function Drivers() {
   const handleRowClick = (driver) => setSelectedDriver(driver);
   const handleCloseModal = () => setSelectedDriver(null);
 
-const handleApprove = async () => {
-  if (!selectedDriver) return;
+  const handleApprove = async () => {
+    if (!selectedDriver) return;
 
-  try {
-    console.log("Sending ID to backend:", selectedDriver.id); // Log to check ID
-
-    const response = await fetch(
-      "https://swyft-backend-client-nine.vercel.app/driver/verify", // Backend URL
-      {
-        method: "PATCH", // Or "PUT" depending on backend
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: selectedDriver.id, // Ensure the ID is passed correctly
-          verified: true
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to verify driver");
-    }
-
-    console.log("Driver verified:", data);
-
-    // Update state if the request is successful
-    setDrivers((prevDrivers) =>
-      prevDrivers.map((driver) =>
-        driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
-      )
-    );
-
-    handleCloseModal(); // Close modal after success
-  } catch (error) {
-    console.error("Error verifying driver:", error);
-    alert("Failed to verify driver.");
-  }
-};
-
-const handleRestrict = async () => {
-  if (!selectedDriver) return;
-
-  try {
-    const response = await fetch(
-      `https://swyft-backend-client-nine.vercel.app/driver_delete/${selectedDriver.id}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json"
+    try {
+      const response = await fetch(
+        "https://swyft-backend-client-nine.vercel.app/driver/verify",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: selectedDriver.id,
+            verified: true,
+          }),
         }
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.message || "Failed to unverify (restrict) driver"
       );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to verify driver");
+      }
+
+      setDrivers((prevDrivers) =>
+        prevDrivers.map((driver) =>
+          driver.id === selectedDriver.id
+            ? { ...driver, verified: true }
+            : driver
+        )
+      );
+
+      handleCloseModal();
+    } catch (error) {
+      console.error("Error verifying driver:", error);
+      alert("Failed to verify driver.");
     }
+  };
 
-    // Update local state to reflect the verified status
-    setDrivers((prevDrivers) =>
-      prevDrivers.filter((driver) => driver.id !== selectedDriver.id)
-    );
+  const handleRestrict = async () => {
+    if (!selectedDriver) return;
 
-    handleCloseModal();
-  } catch (error) {
-    console.error("Error restricting driver:", error);
-    alert("Failed to restrict driver.");
-  }
-};
+    try {
+      const response = await fetch(
+        `https://swyft-backend-client-nine.vercel.app/driver_delete/${selectedDriver.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Failed to unverify (restrict) driver"
+        );
+      }
+
+      setDrivers((prevDrivers) =>
+        prevDrivers.filter((driver) => driver.id !== selectedDriver.id)
+      );
+
+      handleCloseModal();
+    } catch (error) {
+      console.error("Error restricting driver:", error);
+      alert("Failed to restrict driver.");
+    }
+  };
 
   const filteredDrivers = drivers.filter((d) =>
     d.first_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -140,24 +135,24 @@ const handleRestrict = async () => {
         { label: "National ID Back", src: selectedDriver.national_id_back },
         {
           label: "Vehicle Picture Front",
-          src: selectedDriver.vehicle_picture_front
+          src: selectedDriver.vehicle_picture_front,
         },
         {
           label: "Vehicle Picture Back",
-          src: selectedDriver.vehicle_picture_back
+          src: selectedDriver.vehicle_picture_back,
         },
         { label: "Car Insurance", src: selectedDriver.car_insurance },
         { label: "Inspection Report", src: selectedDriver.inspection_report },
         {
           label: "Company Reg Certificate",
-          src: selectedDriver.company_reg_certificate
+          src: selectedDriver.company_reg_certificate,
         },
         { label: "KRA", src: selectedDriver.kra },
         { label: "Passport Photo", src: selectedDriver.passport_photo },
         {
           label: "Certificate of Conduct",
-          src: selectedDriver.certificate_conduct
-        }
+          src: selectedDriver.certificate_conduct,
+        },
       ]
     : [];
 
@@ -169,7 +164,7 @@ const handleRestrict = async () => {
     dots: false,
     infinite: true,
     speed: 500,
-    asNavFor: thumbSlider.current
+    asNavFor: thumbSlider.current,
   };
 
   const thumbSliderSettings = {
@@ -181,7 +176,7 @@ const handleRestrict = async () => {
     centerMode: false,
     focusOnSelect: true,
     asNavFor: mainSlider.current,
-    arrows: true
+    arrows: true,
   };
 
   return (
@@ -276,6 +271,10 @@ const handleRestrict = async () => {
                       src={img.src}
                       alt={img.label}
                       className="w-24 h-20 object-cover cursor-pointer border border-gray-400"
+                      onClick={() => {
+                        setLightboxIndex(idx);
+                        setIsLightboxOpen(true);
+                      }}
                     />
                   </div>
                 ))}
@@ -305,4 +304,4 @@ const handleRestrict = async () => {
   );
 }
 
-export default Drivers;
+export default DriverKYC;

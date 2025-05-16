@@ -35,7 +35,8 @@ const navItems = [
     icon: <CampaignIcon />,
     subItems: [
       { name: "Marketing", path: "/marketing" },
-      { name: "Insights", path: "/insights" }
+      { name: "Insights", path: "/insights" },
+      { name: "Heat Map", path: "/heatmap" }
     ]
   },
   {
