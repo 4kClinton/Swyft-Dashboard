@@ -101,7 +101,7 @@ function Sales() {
       </div>
 
       {loading ? (
-        <p>Loading orders...</p>
+        <p>Loading Orders...</p>
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : (
