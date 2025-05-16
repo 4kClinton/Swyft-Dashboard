@@ -15,8 +15,10 @@
     "@fontsource/montserrat": "^5.1.1",
     "@mui/icons-material": "^6.4.6",
     "@mui/material": "^6.4.6",
+    "@rollup/rollup-win32-x64-msvc": "^4.40.2",
     "@supabase/supabase-js": "^2.49.4",
-    "@tailwindcss/vite": "^4.0.9",
+    "@tailwindcss/cli": "^4.1.7",
+    "@tailwindcss/vite": "^4.1.7",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "react": "^19.0.0",
@@ -30,6 +32,7 @@
     "react-sparklines": "^1.7.0",
     "recharts": "^2.15.1",
     "slick-carousel": "^1.8.1",
+    "tailwindcss": "^4.1.7",
     "yet-another-react-lightbox": "^3.22.0"
   },
   "devDependencies": {
@@ -37,13 +40,12 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9.21.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
     "postcss": "^8.5.3",
-    "tailwindcss": "^4.0.9",
     "vite": "^6.2.0"
   }
 }
