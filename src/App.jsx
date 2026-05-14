@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   BrowserRouter as Router,
   Route,
@@ -19,6 +20,7 @@ import SuperAdminCockpit from "./Pages/SuperAdminCockpit";
 import ImageGallery from "./Pages/ImageGallery.jsx";
 import ZoomedImagePage from "./Pages/ZoomedImagePage.jsx";
 import Customers from "./Pages/Customers.jsx";
+import { useIsMobile } from "./hooks/useIsMobile";
 import "@fontsource/montserrat";
 import "./index.css";
 
@@ -28,6 +30,77 @@ const ProtectedRoute = ({ children }) => {
     storedUser && storedUser !== "undefined" ? JSON.parse(storedUser) : null;
   return user ? children : <Navigate to="/login" />;
 };
+
+function AppShell() {
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        background: "var(--bg)",
+        color: "var(--text-primary)",
+        overflow: "hidden",
+      }}
+    >
+      {/* Backdrop — mobile only */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.6)",
+            zIndex: 40,
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
+        />
+      )}
+
+      <Sidebar
+        isOpen={isMobile ? sidebarOpen : true}
+        isMobile={isMobile}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          minWidth: 0,
+        }}
+      >
+        <Navbar
+          isMobile={isMobile}
+          onMenuClick={() => setSidebarOpen((v) => !v)}
+        />
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: isMobile ? "16px" : "28px 32px",
+          }}
+        >
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/drivers" element={<Drivers />} />
+            <Route path="/sales" element={<Sales />} />
+            <Route path="/commissions" element={<Commissions />} />
+            <Route path="/marketing" element={<Marketing />} />
+            <Route path="/insights" element={<Insights />} />
+            <Route path="/driver-kyc" element={<DriverKYC />} />
+            <Route path="/customers" element={<Customers />} />
+          </Routes>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -42,38 +115,7 @@ function App() {
           path="/*"
           element={
             <ProtectedRoute>
-              <div
-                style={{
-                  display: "flex",
-                  height: "100vh",
-                  background: "var(--bg)",
-                  color: "var(--text-primary)",
-                  overflow: "hidden",
-                }}
-              >
-                <Sidebar />
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                  <Navbar />
-                  <div
-                    style={{
-                      flex: 1,
-                      overflowY: "auto",
-                      padding: "28px 32px",
-                    }}
-                  >
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/drivers" element={<Drivers />} />
-                      <Route path="/sales" element={<Sales />} />
-                      <Route path="/commissions" element={<Commissions />} />
-                      <Route path="/marketing" element={<Marketing />} />
-                      <Route path="/insights" element={<Insights />} />
-                      <Route path="/driver-kyc" element={<DriverKYC />} />
-                      <Route path="/customers" element={<Customers />} />
-                    </Routes>
-                  </div>
-                </div>
-              </div>
+              <AppShell />
             </ProtectedRoute>
           }
         />

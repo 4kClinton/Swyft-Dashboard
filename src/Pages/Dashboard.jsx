@@ -263,7 +263,7 @@ function Dashboard() {
         >
           Sign Ups — Last 7 Days
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
           <ChartCard
             title="Driver Sign Ups"
             value={driverSignUps}

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
 
 const routeLabels = {
   "/": "Overview",
@@ -14,7 +15,7 @@ const routeLabels = {
   "/settings": "Super Admin",
 };
 
-function Navbar() {
+function Navbar({ onMenuClick, isMobile }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,7 +29,6 @@ function Navbar() {
     navigate("/login");
   };
 
-  // Close on outside click
   useEffect(() => {
     const handle = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -48,25 +48,52 @@ function Navbar() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 24px",
+        padding: "0 16px",
         flexShrink: 0,
         zIndex: 10,
+        gap: "12px",
       }}
     >
-      {/* Page title */}
-      <h1
-        style={{
-          fontSize: "15px",
-          fontWeight: 600,
-          color: "var(--text-primary)",
-          letterSpacing: "-0.01em",
-        }}
-      >
-        {pageTitle}
-      </h1>
+      {/* Left: hamburger (mobile) + page title */}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+        {isMobile && (
+          <button
+            onClick={onMenuClick}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-primary)",
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--radius-xs)",
+              flexShrink: 0,
+            }}
+            aria-label="Open navigation"
+          >
+            <MenuIcon />
+          </button>
+        )}
+
+        <h1
+          style={{
+            fontSize: "15px",
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            letterSpacing: "-0.01em",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {pageTitle}
+        </h1>
+      </div>
 
       {/* Right side */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
         {/* Status indicator */}
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <div
@@ -78,9 +105,11 @@ function Navbar() {
               boxShadow: "0 0 6px var(--accent)",
             }}
           />
-          <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>
-            Live
-          </span>
+          {!isMobile && (
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>
+              Live
+            </span>
+          )}
         </div>
 
         {/* User menu */}
@@ -113,7 +142,7 @@ function Navbar() {
             }}
           >
             <AccountCircleIcon fontSize="small" style={{ color: "var(--text-secondary)" }} />
-            <span>Admin</span>
+            {!isMobile && <span>Admin</span>}
           </button>
 
           {menuOpen && (

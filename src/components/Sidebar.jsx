@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
@@ -8,6 +8,7 @@ import InsightsIcon from "@mui/icons-material/Insights";
 import BuildIcon from "@mui/icons-material/Build";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import CloseIcon from "@mui/icons-material/Close";
 
 const navItems = [
   { name: "Overview", path: "/", icon: <DashboardIcon fontSize="small" /> },
@@ -48,10 +49,9 @@ const navItems = [
   { name: "Super Admin", path: "/settings", icon: <AdminPanelSettingsIcon fontSize="small" /> },
 ];
 
-function Sidebar() {
+function Sidebar({ isOpen, isMobile, onClose }) {
   const location = useLocation();
   const [openGroups, setOpenGroups] = useState(() => {
-    // Auto-open the group that contains the current path
     const initial = {};
     navItems.forEach((item) => {
       if (item.subItems?.some((sub) => location.pathname === sub.path)) {
@@ -61,8 +61,20 @@ function Sidebar() {
     return initial;
   });
 
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (isMobile) {
+      document.body.style.overflow = isOpen ? "hidden" : "";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [isMobile, isOpen]);
+
   const toggleGroup = (name) => {
     setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  const handleNavClick = () => {
+    if (isMobile) onClose();
   };
 
   return (
@@ -77,6 +89,17 @@ function Sidebar() {
         flexDirection: "column",
         overflowY: "auto",
         overflowX: "hidden",
+        flexShrink: 0,
+        // Mobile: fixed overlay drawer
+        ...(isMobile && {
+          position: "fixed",
+          left: 0,
+          top: 0,
+          zIndex: 50,
+          transform: isOpen ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 280ms cubic-bezier(0.4, 0, 0.2, 1)",
+          boxShadow: isOpen ? "var(--shadow-lg)" : "none",
+        }),
       }}
     >
       {/* Logo */}
@@ -85,6 +108,9 @@ function Sidebar() {
           padding: "20px 16px",
           borderBottom: "1px solid var(--border)",
           flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -130,6 +156,26 @@ function Sidebar() {
             Admin
           </span>
         </div>
+
+        {/* Close button — mobile only */}
+        {isMobile && (
+          <button
+            onClick={onClose}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-secondary)",
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--radius-xs)",
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -190,6 +236,7 @@ function Sidebar() {
                       <li key={sub.name}>
                         <NavLink
                           to={sub.path}
+                          onClick={handleNavClick}
                           style={({ isActive }) => ({
                             display: "block",
                             padding: "6px 10px",
@@ -229,6 +276,7 @@ function Sidebar() {
             <div key={item.name} style={{ marginBottom: "2px" }}>
               <NavLink
                 to={item.path}
+                onClick={handleNavClick}
                 style={({ isActive }) => ({
                   display: "flex",
                   alignItems: "center",

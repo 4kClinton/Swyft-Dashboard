@@ -53,6 +53,30 @@ body {
   background: var(--text-muted);
 }
 
+/* Mobile-responsive modal inner layout */
+.modal-flex-layout {
+  display: flex;
+  gap: 24px;
+}
+
+.modal-side-panel {
+  min-width: 190px;
+  max-width: 190px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .modal-flex-layout {
+    flex-direction: column;
+  }
+
+  .modal-side-panel {
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
+  }
+}
+
 .glass-card {
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(12px);
