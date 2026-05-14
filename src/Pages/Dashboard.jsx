@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import StatsCard from "../components/StatsCard";
 import ChartCard from "../components/ChartCard";
@@ -10,327 +9,291 @@ function Dashboard() {
   const [modalContent, setModalContent] = useState("");
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
-
-  // Online drivers states
   const [activeDrivers, setActiveDrivers] = useState(0);
   const [onlineDrivers, setOnlineDrivers] = useState([]);
-
-  // Revenue trends state
   const [revenueData, setRevenueData] = useState([]);
-
-  // Sign ups states
   const [driverSignUps, setDriverSignUps] = useState(0);
   const [customerSignUps, setCustomerSignUps] = useState(0);
   const [driverSignUpData, setDriverSignUpData] = useState([]);
   const [customerSignUpData, setCustomerSignUpData] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
-  /**
-   * Helper function to format numbers with commas.
-   * E.g., 4787.25 -> "4,787.25"
-   */
-  const formatNumber = (num) => {
-    if (!num) return "0";
-    return num.toLocaleString();
-  };
-
-  /**
-   * Fetch online drivers (those with online === true)
-   */
   const fetchOnlineDrivers = async () => {
     const { data: drivers, error } = await supabase
       .from("drivers")
       .select("*")
       .eq("online", true);
-
-    if (error) {
-      console.error("Error fetching drivers:", error);
-      return [];
-    } else {
-      return drivers;
-    }
+    if (error) { console.error("Error fetching drivers:", error); return []; }
+    return drivers;
   };
 
-  /**
-   * Fetch sign ups data (for drivers and customers) from the past 7 days
-   */
   const fetchSignUpsData = async () => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    // -------------------------
-    // Drivers sign ups
-    // -------------------------
-    const { data: driversData, error: driverError } = await supabase
+    const { data: driversData } = await supabase
       .from("drivers")
       .select("id, join_date")
       .gte("join_date", oneWeekAgo.toISOString());
 
-    if (driverError) {
-      console.error("Error fetching driver sign ups:", driverError);
-    } else if (driversData) {
+    if (driversData) {
       setDriverSignUps(driversData.length);
-      const driverByDay = {};
+      const byDay = {};
       driversData.forEach((item) => {
         const day = new Date(item.join_date).toISOString().slice(0, 10);
-        driverByDay[day] = (driverByDay[day] || 0) + 1;
+        byDay[day] = (byDay[day] || 0) + 1;
       });
-      const driverDataArray = Object.keys(driverByDay)
-        .map((day) => ({
-          first_name: day,
-          signups: driverByDay[day]
-        }))
-        .sort((a, b) => new Date(a.first_name) - new Date(b.first_name));
-      setDriverSignUpData(driverDataArray);
+      setDriverSignUpData(
+        Object.keys(byDay)
+          .map((day) => ({ first_name: day, signups: byDay[day] }))
+          .sort((a, b) => new Date(a.first_name) - new Date(b.first_name))
+      );
     }
-    
-    // -------------------------
-    // Customers sign ups
-    // -------------------------
-    const { data: customersData, error: customerError } = await supabase
-    .from("customers")
-    .select("id, join_date")
-    .gte("join_date", oneWeekAgo.toISOString());
 
-      
-    if (customerError) {
-      console.error("Error fetching customer sign ups:", customerError);
-    } else if (customersData) {
+    const { data: customersData } = await supabase
+      .from("customers")
+      .select("id, join_date")
+      .gte("join_date", oneWeekAgo.toISOString());
+
+    if (customersData) {
       setCustomerSignUps(customersData.length);
-      const customerByDay = {};
+      const byDay = {};
       customersData.forEach((item) => {
-        if (!item.join_date) {
-          console.warn("Missing join_date in item:", item);
-          return;
-        }
+        if (!item.join_date) return;
         const day = new Date(item.join_date).toISOString().slice(0, 10);
-        customerByDay[day] = (customerByDay[day] || 0) + 1;
+        byDay[day] = (byDay[day] || 0) + 1;
       });
-      const customerDataArray = Object.keys(customerByDay)
-        .map((day) => ({
-          name: day,
-          signups: customerByDay[day]
-        }))
-        .sort((a, b) => new Date(a.name) - new Date(b.name));
-      setCustomerSignUpData(customerDataArray);
+      setCustomerSignUpData(
+        Object.keys(byDay)
+          .map((day) => ({ name: day, signups: byDay[day] }))
+          .sort((a, b) => new Date(a.name) - new Date(b.name))
+      );
     }
   };
 
-  /**
-   * Fetch dashboard data (orders, revenue trends, online drivers, and sign ups)
-   */
   const fetchDashboardData = async () => {
     setLoading(true);
 
-    // 1. Fetch Orders & Revenue Trends
     try {
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("commission, status, created_at");
 
-      if (ordersError) {
-        console.error("Error fetching orders:", ordersError);
-      } else if (orders) {
-        // Filter orders to include only those with status "completed"
-        const completedOrders = orders.filter(
-          (order) => order.status && order.status.toLowerCase() === "completed"
+      if (!ordersError && orders) {
+        const completed = orders.filter(
+          (o) => o.status?.toLowerCase() === "completed"
         );
-        // Compute total revenue from completed orders
-        const revenueSum = completedOrders.reduce(
-          (acc, order) => acc + Number(order.commission || 0),
-          0
+        setTotalRevenue(
+          completed.reduce((acc, o) => acc + Number(o.commission || 0), 0)
         );
-        setTotalRevenue(revenueSum);
-        // Total orders count (all orders fetched)
         setTotalOrders(orders.length);
-        // Group completed orders by month for chart data
+
         const monthlyMap = {};
-        completedOrders.forEach((order) => {
-          const date = new Date(order.created_at);
+        completed.forEach((o) => {
+          const date = new Date(o.created_at);
           const month = `${date.getFullYear()}-${date.getMonth() + 1}`;
           monthlyMap[month] =
-            (monthlyMap[month] || 0) + Number(order.commission || 0);
+            (monthlyMap[month] || 0) + Number(o.commission || 0);
         });
-        const revenueDataArray = Object.keys(monthlyMap).map((month) => ({
-          name: month,
-          revenue: monthlyMap[month]
-        }));
-        setRevenueData(revenueDataArray);
+        setRevenueData(
+          Object.keys(monthlyMap).map((m) => ({ name: m, revenue: monthlyMap[m] }))
+        );
       }
     } catch (err) {
-      console.error("Unexpected error fetching orders:", err);
+      console.error("Error fetching orders:", err);
     }
 
-    // 2. Fetch Online Drivers
     const drivers = await fetchOnlineDrivers();
     setOnlineDrivers(drivers);
     setActiveDrivers(drivers.length);
 
-    // 3. Fetch Sign Ups Data
     await fetchSignUpsData();
-
     setLoading(false);
   };
 
-  /**
-   * Setup realtime subscriptions for:
-   *  - drivers (online status and sign ups)
-   *  - customers (sign ups)
-   *  - orders (to update revenue and order count)
-   */
   useEffect(() => {
-    // Initial data fetch
     fetchDashboardData();
 
-    // ---- DRIVERS subscription ----
-    const onlineDriversSubscription = supabase
+    const driverSub = supabase
       .channel("online_drivers")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "drivers" },
-        async (payload) => {
-          console.log("Realtime change (drivers) detected:", payload);
-          const updatedDrivers = await fetchOnlineDrivers();
-          setOnlineDrivers(updatedDrivers);
-          setActiveDrivers(updatedDrivers.length);
-          await fetchSignUpsData();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "drivers" }, async () => {
+        const updated = await fetchOnlineDrivers();
+        setOnlineDrivers(updated);
+        setActiveDrivers(updated.length);
+        await fetchSignUpsData();
+      })
       .subscribe();
 
-    // ---- CUSTOMERS subscription ----
-    const customerSignUpsSubscription = supabase
+    const customerSub = supabase
       .channel("customer_signups")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "customers" },
-        async (payload) => {
-          console.log("Realtime change (customers) detected:", payload);
-          await fetchSignUpsData();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "customers" }, async () => {
+        await fetchSignUpsData();
+      })
       .subscribe();
 
-    // ---- ORDERS subscription ----
-    const ordersSubscription = supabase
+    const orderSub = supabase
       .channel("orders_channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders" },
-        async (payload) => {
-          console.log("Realtime change (orders) detected:", payload);
-          await fetchDashboardData();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, async () => {
+        await fetchDashboardData();
+      })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(onlineDriversSubscription);
-      supabase.removeChannel(customerSignUpsSubscription);
-      supabase.removeChannel(ordersSubscription);
+      supabase.removeChannel(driverSub);
+      supabase.removeChannel(customerSub);
+      supabase.removeChannel(orderSub);
     };
   }, []);
 
-  /**
-   * Handle card clicks to show detailed info in a modal.
-   */
   const handleCardClick = (detail) => {
     let content = detail;
-    if (detail === "Detailed Driver Information") {
+    if (detail === "online-drivers") {
       content =
         onlineDrivers.length === 0
           ? "No drivers are currently online."
-          : `Online Drivers:\n${onlineDrivers
-              .map((driver) => `Driver ID: ${driver.id}`)
-              .join("\n")}`;
-    }
-    if (detail === "Detailed Driver Sign Up Information") {
-      content =
-        driverSignUpData.length === 0
-          ? "No new driver sign ups in the past week."
-          : `Driver Sign Ups Trend:\n${driverSignUpData
-              .map((item) => `${item.name}: ${item.signups}`)
-              .join("\n")}`;
-    }
-    if (detail === "Detailed Customer Sign Up Information") {
-      content =
-        customerSignUpData.length === 0
-          ? "No new customer sign ups in the past week."
-          : `Customer Sign Ups Trend:\n${customerSignUpData
-              .map((item) => `${item.name}: ${item.signups}`)
-              .join("\n")}`;
+          : `Online Drivers:\n${onlineDrivers.map((d) => `• ${d.first_name || d.id}`).join("\n")}`;
     }
     setModalContent(content);
     setModalOpen(true);
   };
 
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "200px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <div
+            style={{
+              width: "24px",
+              height: "24px",
+              border: "2px solid var(--border-hover)",
+              borderTopColor: "var(--accent)",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+            }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Loading dashboard...</span>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold mb-4">Overview</h1>
-      {loading ? (
-        <p>Loading dashboard data...</p>
-      ) : (
-        <>
-          {/* Main Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatsCard
-              title="Total Orders"
-              value={totalOrders}
-              onClick={() => handleCardClick("Detailed Orders Information")}
-            />
-            <StatsCard
-              title="Active Drivers"
-              value={activeDrivers}
-              onClick={() => handleCardClick("Detailed Driver Information")}
-            />
-          </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+      {/* Stats row */}
+      <div>
+        <p
+          style={{
+            fontSize: "11px",
+            fontWeight: 500,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--text-secondary)",
+            marginBottom: "12px",
+          }}
+        >
+          Overview
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
+          <StatsCard
+            title="Total Orders"
+            value={totalOrders.toLocaleString()}
+            onClick={() => handleCardClick("Total orders fetched from all time.")}
+          />
+          <StatsCard
+            title="Total Revenue"
+            value={`KES ${totalRevenue.toLocaleString()}`}
+            onClick={() => handleCardClick("Revenue from completed orders.")}
+          />
+          <StatsCard
+            title="Online Drivers"
+            value={activeDrivers}
+            onClick={() => handleCardClick("online-drivers")}
+          />
+          <StatsCard
+            title="New Drivers (7d)"
+            value={driverSignUps}
+          />
+          <StatsCard
+            title="New Customers (7d)"
+            value={customerSignUps}
+          />
+        </div>
+      </div>
 
-          {/* Revenue Trends */}
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-4">Revenue Trends</h2>
-            <ChartCard
-              title="Monthly Revenue"
-              data={revenueData}
-              dataKey="revenue"
-              onClick={() => handleCardClick("More detailed chart data here")}
-            />
-          </div>
+      {/* Revenue chart */}
+      <div>
+        <p
+          style={{
+            fontSize: "11px",
+            fontWeight: 500,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--text-secondary)",
+            marginBottom: "12px",
+          }}
+        >
+          Revenue
+        </p>
+        <ChartCard
+          title="Monthly Revenue"
+          data={revenueData}
+          dataKey="revenue"
+        />
+      </div>
 
-          {/* Sign Ups Section */}
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-4">Sign Ups</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ChartCard
-                title="Driver Sign Ups"
-                value={driverSignUps}
-                data={driverSignUpData}
-                dataKey="signups"
-                onClick={() =>
-                  handleCardClick("Detailed Driver Sign Up Information")
-                }
-              />
-              <ChartCard
-                title="Customer Sign Ups"
-                value={customerSignUps}
-                data={customerSignUpData}
-                dataKey="signups"
-                onClick={() =>
-                  handleCardClick("Detailed Customer Sign Up Information")
-                }
-              />
-            </div>
-          </div>
-        </>
-      )}
+      {/* Sign ups charts */}
+      <div>
+        <p
+          style={{
+            fontSize: "11px",
+            fontWeight: 500,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--text-secondary)",
+            marginBottom: "12px",
+          }}
+        >
+          Sign Ups — Last 7 Days
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <ChartCard
+            title="Driver Sign Ups"
+            value={driverSignUps}
+            data={driverSignUpData}
+            dataKey="signups"
+          />
+          <ChartCard
+            title="Customer Sign Ups"
+            value={customerSignUps}
+            data={customerSignUpData}
+            dataKey="signups"
+          />
+        </div>
+      </div>
 
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Details"
-      >
-        <pre>{modalContent}</pre>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Details">
+        <pre
+          style={{
+            fontSize: "13px",
+            color: "var(--text-secondary)",
+            whiteSpace: "pre-wrap",
+            fontFamily: "inherit",
+            lineHeight: 1.7,
+          }}
+        >
+          {modalContent}
+        </pre>
       </Modal>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

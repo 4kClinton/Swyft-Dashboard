@@ -1,119 +1,287 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
-import BarChartIcon from "@mui/icons-material/BarChart";
-import PaidIcon from "@mui/icons-material/Paid";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
-import CampaignIcon from "@mui/icons-material/Campaign";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import CampaignIcon from "@mui/icons-material/Campaign";
 import InsightsIcon from "@mui/icons-material/Insights";
-import BuildIcon from "@mui/icons-material/Build"; // For Tech Management
+import BuildIcon from "@mui/icons-material/Build";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 const navItems = [
-  { name: "Overview", path: "/", icon: <DashboardIcon /> },
+  { name: "Overview", path: "/", icon: <DashboardIcon fontSize="small" /> },
   {
     name: "Users",
-    icon: <PeopleIcon />,
+    icon: <PeopleIcon fontSize="small" />,
     subItems: [
       { name: "Customers", path: "/customers" },
       { name: "Drivers", path: "/drivers" },
-      { name: "Unverified", path: "/driver-kyc" }
-    ]
+      { name: "Unverified KYC", path: "/driver-kyc" },
+    ],
   },
   {
     name: "Finances",
-    icon: <AccountBalanceWalletIcon />,
+    icon: <AccountBalanceWalletIcon fontSize="small" />,
     subItems: [
-      
       { name: "Commissions", path: "/commissions" },
-      { name: "Analytics", path: "/sales" }
-    ]
+      { name: "Analytics", path: "/sales" },
+    ],
   },
   {
     name: "Marketing",
-    icon: <CampaignIcon />,
+    icon: <CampaignIcon fontSize="small" />,
     subItems: [
-      { name: "Marketing", path: "/marketing" },
-      { name: "Insights", path: "/insights" }
-    ]
+      { name: "Campaigns", path: "/marketing" },
+      { name: "Insights", path: "/insights" },
+    ],
   },
   {
     name: "Operations",
-    icon: <InsightsIcon />,
+    icon: <InsightsIcon fontSize="small" />,
     subItems: [
       { name: "Affiliates", path: "/affiliates" },
-      { name: "Fraud", path: "/fraud" }
-    ]
+      { name: "Fraud", path: "/fraud" },
+    ],
   },
-  { name: "Tech Management", path: "/tech-management", icon: <BuildIcon /> },
-  { name: "Super Admin", path: "/settings", icon: <AdminPanelSettingsIcon /> }
+  { name: "Tech", path: "/tech-management", icon: <BuildIcon fontSize="small" /> },
+  { name: "Super Admin", path: "/settings", icon: <AdminPanelSettingsIcon fontSize="small" /> },
 ];
 
 function Sidebar() {
-  const [openDropdown, setOpenDropdown] = useState({});
+  const location = useLocation();
+  const [openGroups, setOpenGroups] = useState(() => {
+    // Auto-open the group that contains the current path
+    const initial = {};
+    navItems.forEach((item) => {
+      if (item.subItems?.some((sub) => location.pathname === sub.path)) {
+        initial[item.name] = true;
+      }
+    });
+    return initial;
+  });
 
-  const toggleDropdown = (name) => {
-    setOpenDropdown((prev) => ({ ...prev, [name]: !prev[name] }));
+  const toggleGroup = (name) => {
+    setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
   return (
-    <div className="w-64 bg-gray-800 p-4">
-      <h2 className="text-2xl font-bold mb-6 text-center">Menu</h2>
-      <ul>
+    <div
+      style={{
+        width: "220px",
+        minWidth: "220px",
+        height: "100vh",
+        background: "var(--surface-1)",
+        borderRight: "1px solid var(--border)",
+        display: "flex",
+        flexDirection: "column",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
+    >
+      {/* Logo */}
+      <div
+        style={{
+          padding: "20px 16px",
+          borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              width: "28px",
+              height: "28px",
+              background: "var(--accent)",
+              borderRadius: "6px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#07080D" strokeWidth="0" />
+            </svg>
+          </div>
+          <span
+            style={{
+              fontSize: "15px",
+              fontWeight: 700,
+              color: "var(--text-primary)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Swyft
+          </span>
+          <span
+            style={{
+              fontSize: "10px",
+              fontWeight: 500,
+              color: "var(--text-secondary)",
+              background: "var(--surface-3)",
+              border: "1px solid var(--border-hover)",
+              borderRadius: "4px",
+              padding: "1px 5px",
+              letterSpacing: "0.04em",
+              marginLeft: "2px",
+            }}
+          >
+            Admin
+          </span>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ padding: "12px 8px", flex: 1 }}>
         {navItems.map((item) => {
           if (item.subItems) {
+            const isGroupOpen = openGroups[item.name];
+            const hasActive = item.subItems.some((sub) => location.pathname === sub.path);
+
             return (
-              <li key={item.name} className="mb-4">
-                <div
-                  onClick={() => toggleDropdown(item.name)}
-                  className="flex items-center p-2 rounded hover:bg-gray-700 transition-colors cursor-pointer"
+              <div key={item.name} style={{ marginBottom: "2px" }}>
+                <button
+                  onClick={() => toggleGroup(item.name)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "7px 10px",
+                    borderRadius: "var(--radius-sm)",
+                    background: hasActive ? "var(--accent-dim)" : "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    color: hasActive ? "var(--accent)" : "var(--text-secondary)",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    textAlign: "left",
+                    transition: "all 150ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!hasActive) {
+                      e.currentTarget.style.background = "var(--surface-2)";
+                      e.currentTarget.style.color = "var(--text-primary)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!hasActive) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }
+                  }}
                 >
-                  <span className="mr-3">{item.icon}</span>
-                  <span>{item.name}</span>
-                  <span className="ml-auto">
-                    {openDropdown[item.name] ? "-" : "+"}
-                  </span>
-                </div>
-                {openDropdown[item.name] && (
-                  <ul className="ml-6 mt-2">
-                    {item.subItems.map((subItem) => (
-                      <li key={subItem.name} className="mb-2">
+                  <span style={{ flexShrink: 0, display: "flex" }}>{item.icon}</span>
+                  <span style={{ flex: 1 }}>{item.name}</span>
+                  <ExpandMoreIcon
+                    fontSize="small"
+                    style={{
+                      transform: isGroupOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 200ms ease",
+                      opacity: 0.5,
+                    }}
+                  />
+                </button>
+
+                {isGroupOpen && (
+                  <ul style={{ margin: "2px 0 4px 36px", padding: 0, listStyle: "none" }}>
+                    {item.subItems.map((sub) => (
+                      <li key={sub.name}>
                         <NavLink
-                          to={subItem.path}
-                          className={({ isActive }) =>
-                            `block p-2 rounded hover:bg-gray-700 transition-colors ${
-                              isActive ? "bg-gray-700" : ""
-                            }`
-                          }
+                          to={sub.path}
+                          style={({ isActive }) => ({
+                            display: "block",
+                            padding: "6px 10px",
+                            borderRadius: "var(--radius-sm)",
+                            fontSize: "12px",
+                            fontWeight: isActive ? 600 : 400,
+                            color: isActive ? "var(--accent)" : "var(--text-secondary)",
+                            background: isActive ? "var(--accent-dim)" : "transparent",
+                            textDecoration: "none",
+                            transition: "all 150ms ease",
+                            marginBottom: "1px",
+                          })}
+                          onMouseEnter={(e) => {
+                            const isActive = e.currentTarget.style.color === "var(--accent)";
+                            if (!isActive) {
+                              e.currentTarget.style.background = "var(--surface-2)";
+                              e.currentTarget.style.color = "var(--text-primary)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            const isActive = location.pathname === sub.path;
+                            e.currentTarget.style.background = isActive ? "var(--accent-dim)" : "transparent";
+                            e.currentTarget.style.color = isActive ? "var(--accent)" : "var(--text-secondary)";
+                          }}
                         >
-                          {subItem.name}
+                          {sub.name}
                         </NavLink>
                       </li>
                     ))}
                   </ul>
                 )}
-              </li>
-            );
-          } else {
-            return (
-              <li key={item.name} className="mb-4">
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `flex items-center p-2 rounded hover:bg-gray-700 transition-colors ${
-                      isActive ? "bg-gray-700" : ""
-                    }`
-                  }
-                >
-                  <span className="mr-3">{item.icon}</span>
-                  <span>{item.name}</span>
-                </NavLink>
-              </li>
+              </div>
             );
           }
+
+          return (
+            <div key={item.name} style={{ marginBottom: "2px" }}>
+              <NavLink
+                to={item.path}
+                style={({ isActive }) => ({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "7px 10px",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "13px",
+                  fontWeight: isActive ? 600 : 500,
+                  color: isActive ? "var(--accent)" : "var(--text-secondary)",
+                  background: isActive ? "var(--accent-dim)" : "transparent",
+                  textDecoration: "none",
+                  transition: "all 150ms ease",
+                })}
+                onMouseEnter={(e) => {
+                  const isActive = location.pathname === item.path;
+                  if (!isActive) {
+                    e.currentTarget.style.background = "var(--surface-2)";
+                    e.currentTarget.style.color = "var(--text-primary)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  const isActive = location.pathname === item.path;
+                  e.currentTarget.style.background = isActive ? "var(--accent-dim)" : "transparent";
+                  e.currentTarget.style.color = isActive ? "var(--accent)" : "var(--text-secondary)";
+                }}
+              >
+                <span style={{ flexShrink: 0, display: "flex" }}>{item.icon}</span>
+                <span>{item.name}</span>
+              </NavLink>
+            </div>
+          );
         })}
-      </ul>
+      </nav>
+
+      {/* Footer */}
+      <div
+        style={{
+          padding: "12px 16px",
+          borderTop: "1px solid var(--border)",
+          flexShrink: 0,
+        }}
+      >
+        <p
+          style={{
+            fontSize: "10px",
+            color: "var(--text-muted)",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}
+        >
+          Swyft Logistics · Admin
+        </p>
+      </div>
     </div>
   );
 }

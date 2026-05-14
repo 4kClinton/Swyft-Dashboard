@@ -1,17 +1,76 @@
 @import "tailwindcss";
 
-* {
-  font-family: 'Montserrat', sans-serif;
+:root {
+  --bg: #07080D;
+  --surface-1: #0D1117;
+  --surface-2: #131922;
+  --surface-3: #1A2232;
+  --border: #1C2335;
+  --border-hover: #263050;
+  --text-primary: #ECF0F6;
+  --text-secondary: #5E7397;
+  --text-muted: #2D3D59;
+  --accent: #00D46A;
+  --accent-dim: rgba(0, 212, 106, 0.08);
+  --accent-border: rgba(0, 212, 106, 0.18);
+  --danger: #EF4444;
+  --danger-dim: rgba(239, 68, 68, 0.08);
+  --warning: #F59E0B;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
-/* In a global CSS file or inside a <style> block */
+* {
+  font-family: 'Montserrat', sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 .glass-card {
-  background: rgba(255, 255, 255, 0.1);
-  /* Lighten/darken as needed */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  /* Safari support */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.75rem;
-  /* 12px (or use Tailwind's rounded-xl) */
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+}
+
+/* Slick carousel arrow overrides */
+.slick-prev:before,
+.slick-next:before {
+  color: var(--accent);
+}
+
+.slick-dots li button:before {
+  color: var(--text-secondary);
+}
+
+.slick-dots li.slick-active button:before {
+  color: var(--accent);
 }

@@ -1,150 +1,140 @@
-// src/pages/Commissions.jsx
 import React, { useState, useEffect } from "react";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import ChartCard from "../components/ChartCard";
-import { supabase } from "../supabaseClient"; // Ensure your supabase client is correctly configured
+import { supabase } from "../supabaseClient";
 
 function Commissions() {
   const [commissionsData, setCommissionsData] = useState([]);
   const [graphData, setGraphData] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCommissions() {
-      // 1. Fetch orders data
+      setLoading(true);
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("commission, driver_id, created_at");
-      if (ordersError) {
-        console.error("Error fetching orders:", ordersError);
-        return;
-      }
+      if (ordersError) { console.error(ordersError); setLoading(false); return; }
 
-      // 2. Fetch drivers data (id, name, car_type)
       const { data: drivers, error: driversError } = await supabase
         .from("drivers")
         .select("id, name, car_type");
-      if (driversError) {
-        console.error("Error fetching drivers:", driversError);
-        return;
-      }
+      if (driversError) { console.error(driversError); setLoading(false); return; }
 
-      // 3. Create a map of driver data keyed by driver.id
-      //    e.g. driverMap[driver.id] = { name: driver.name, car_type: driver.car_type }
       const driverMap = {};
-      drivers.forEach((driver) => {
-        driverMap[driver.id] = {
-          name: driver.name,
-          car_type: driver.car_type
-        };
+      drivers.forEach((d) => {
+        driverMap[d.id] = { name: d.name, car_type: d.car_type };
       });
 
-      // 4. Combine order data with driver data
-      //    Skip orders if there's no matching driver
-      const combinedData = orders
-        .map((order) => {
-          const driverData = driverMap[order.driver_id];
-          if (!driverData) return null; // no matching driver
+      const combined = orders
+        .map((o) => {
+          const d = driverMap[o.driver_id];
+          if (!d) return null;
           return {
-            name: driverData.name,
-            car_type: driverData.car_type,
-            commission: order.commission,
-            created_at: order.created_at
+            name: d.name,
+            car_type: d.car_type,
+            commission: o.commission,
+            created_at: o.created_at,
           };
         })
-        .filter(Boolean); // remove null entries
-console.log("Orders Error:", ordersError);
-console.log("Drivers Error:", driversError);
-console.log("Orders fetched:", orders);
-console.log("Drivers fetched:", drivers);
+        .filter(Boolean);
 
-      setCommissionsData(combinedData);
+      setCommissionsData(combined);
 
-      // 5. Prepare graph data: group commissions by date and sum commissions per day
       const graphMap = {};
-      combinedData.forEach((item) => {
+      combined.forEach((item) => {
         const date = new Date(item.created_at).toLocaleDateString();
-        if (!graphMap[date]) {
-          graphMap[date] = 0;
-        }
-        graphMap[date] += Number(item.commission);
+        graphMap[date] = (graphMap[date] || 0) + Number(item.commission);
       });
-      const graphDataArray = Object.keys(graphMap).map((date) => ({
-        name: date,
-        commission: graphMap[date]
-      }));
-      setGraphData(graphDataArray);
+      setGraphData(
+        Object.keys(graphMap).map((date) => ({ name: date, commission: graphMap[date] }))
+      );
+
+      setLoading(false);
     }
 
     fetchCommissions();
   }, []);
 
-  // Filter commissionsData by driver's name
   const filteredData = commissionsData.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleRowClick = (item) => {
-    setSelectedItem(item);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedItem(null);
-  };
-
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-4">Commissions</h1>
-
-      {/* Chart at the top */}
-      <div className="mt-8">
-        <ChartCard
-          title="Commission Over Time"
-          data={graphData}
-          dataKey="commission"
-          onClick={() => {}}
-        />
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+          Commissions
+        </h1>
+        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "2px" }}>
+          Driver commission records
+        </p>
       </div>
 
-      {/* Search field */}
-      <div className="mt-8 mb-4">
+      <ChartCard
+        title="Commission Over Time"
+        data={graphData}
+        dataKey="commission"
+      />
+
+      <div>
         <input
           type="text"
           placeholder="Search by driver name..."
-          className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: "100%",
+            maxWidth: "360px",
+            padding: "9px 14px",
+            background: "var(--surface-1)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            color: "var(--text-primary)",
+            fontSize: "13px",
+            outline: "none",
+            transition: "border-color 150ms ease",
+            marginBottom: "16px",
+            display: "block",
+          }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--accent-border)"; }}
+          onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
         />
+
+        {loading ? (
+          <div style={{ padding: "60px", textAlign: "center", color: "var(--text-secondary)", fontSize: "14px" }}>
+            Loading commissions...
+          </div>
+        ) : (
+          <DataTable
+            columns={["Name", "Car Type", "Commission"]}
+            data={filteredData}
+            onRowClick={setSelectedItem}
+          />
+        )}
       </div>
 
-      {/* Data Table */}
-      <div className="mt-4">
-        <DataTable
-          columns={["Name", "Car Type", "Commission"]}
-          data={filteredData}
-          onRowClick={handleRowClick}
-        />
-      </div>
-
-      {/* Modal for row details */}
       <Modal
         isOpen={!!selectedItem}
-        onClose={handleCloseModal}
-        title="Commission Details"
+        onClose={() => setSelectedItem(null)}
+        title="Commission Detail"
       >
         {selectedItem && (
-          <div>
-            <p>
-              <strong>Name:</strong> {selectedItem.name}
-            </p>
-            <p>
-              <strong>Car Type:</strong> {selectedItem.car_type || "N/A"}
-            </p>
-            <p>
-              <strong>Commission:</strong> {selectedItem.commission}
-            </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {[
+              ["Driver", selectedItem.name],
+              ["Car Type", selectedItem.car_type || "—"],
+              ["Commission", `KES ${Number(selectedItem.commission).toLocaleString()}`],
+              ["Date", selectedItem.created_at ? new Date(selectedItem.created_at).toLocaleDateString() : "—"],
+            ].map(([key, val]) => (
+              <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "12px", borderBottom: "1px solid var(--border)" }}>
+                <p style={{ fontSize: "12px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>{key}</p>
+                <p style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{val}</p>
+              </div>
+            ))}
           </div>
         )}
       </Modal>

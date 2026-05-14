@@ -1,28 +1,307 @@
-// src/pages/Drivers.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { supabase } from "../supabaseClient";
-import Slider from "react-slick";
 import Lightbox from "yet-another-react-lightbox";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import "yet-another-react-lightbox/styles.css";
+import { resolveKycImageUrl } from "../utils/imageUtils";
 
 const columns = ["first_name", "email"];
 
-function Drivers() {
+// Resolves a raw DB value to a usable URL asynchronously
+function DocImage({ src, label, onClick }) {
+  const [resolvedUrl, setResolvedUrl] = useState(null);
+  const [status, setStatus] = useState("resolving"); // resolving | loading | loaded | error | missing
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolve() {
+      if (!src) {
+        setStatus("missing");
+        return;
+      }
+
+      setStatus("resolving");
+      const url = await resolveKycImageUrl(src);
+
+      if (cancelled) return;
+
+      if (!url) {
+        setStatus("missing");
+      } else {
+        setResolvedUrl(url);
+        setStatus("loading");
+      }
+    }
+
+    resolve();
+    return () => { cancelled = true; };
+  }, [src]);
+
+  const isPlaceholder = status === "missing" || status === "error";
+  const isSpinning = status === "resolving" || status === "loading";
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        aspectRatio: "4/3",
+        background: "var(--surface-3)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-md)",
+        overflow: "hidden",
+        cursor: status === "loaded" ? "zoom-in" : "default",
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        gap: "6px",
+      }}
+      onClick={status === "loaded" ? onClick : undefined}
+    >
+      {/* Spinner — shown while resolving URL or loading image */}
+      {isSpinning && (
+        <div
+          style={{
+            width: "20px",
+            height: "20px",
+            border: "2px solid var(--border-hover)",
+            borderTopColor: "var(--accent)",
+            borderRadius: "50%",
+            animation: "kyc-spin 0.8s linear infinite",
+            flexShrink: 0,
+          }}
+        />
+      )}
+
+      {/* Not uploaded */}
+      {status === "missing" && (
+        <>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>Not uploaded</span>
+        </>
+      )}
+
+      {/* Load failed */}
+      {status === "error" && (
+        <>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span style={{ fontSize: "10px", color: "var(--danger)" }}>Load failed</span>
+        </>
+      )}
+
+      {/* Actual image — always rendered when URL is resolved, visibility toggled */}
+      {resolvedUrl && (
+        <img
+          src={resolvedUrl}
+          alt={label}
+          onLoad={() => setStatus("loaded")}
+          onError={() => setStatus("error")}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: status === "loaded" ? "block" : "none",
+            transition: "transform 200ms ease",
+          }}
+          onMouseEnter={(e) => { e.target.style.transform = "scale(1.04)"; }}
+          onMouseLeave={(e) => { e.target.style.transform = ""; }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DriverDetail({ driver, onApprove, onReject }) {
+  const [lightboxSlides, setLightboxSlides] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  const docs = [
+    { label: "Passport Photo", src: driver.passport_photo },
+    { label: "Driving License", src: driver.driving_license },
+    { label: "National ID Front", src: driver.national_id_front },
+    { label: "National ID Back", src: driver.national_id_back },
+    { label: "Vehicle Front", src: driver.vehicle_picture_front },
+    { label: "Vehicle Back", src: driver.vehicle_picture_back },
+    { label: "Car Insurance", src: driver.car_insurance },
+    { label: "Inspection Report", src: driver.inspection_report },
+    { label: "Company Reg Cert", src: driver.company_reg_certificate },
+    { label: "KRA", src: driver.kra },
+    { label: "Certificate of Conduct", src: driver.certificate_conduct },
+  ];
+
+  // Log raw values so you can inspect in console what's stored
+  useEffect(() => {
+    console.log("KYC docs for driver:", driver.first_name);
+    docs.forEach((d) => console.log(`  ${d.label}:`, d.src));
+  }, [driver.id]);
+
+  // Pre-resolve all URLs for lightbox when driver changes
+  useEffect(() => {
+    let cancelled = false;
+    async function buildSlides() {
+      const resolved = await Promise.all(
+        docs.map(async (d) => {
+          const url = await resolveKycImageUrl(d.src);
+          return url ? { src: url, alt: d.label } : null;
+        })
+      );
+      if (!cancelled) setLightboxSlides(resolved.filter(Boolean));
+    }
+    buildSlides();
+    return () => { cancelled = true; };
+  }, [driver.id]);
+
+  const openLightbox = (docIndex) => {
+    // Map doc index to lightbox slide index (skipping null slides)
+    let slideIdx = 0;
+    let skipped = 0;
+    for (let i = 0; i < docs.length; i++) {
+      if (i === docIndex) { slideIdx = i - skipped; break; }
+      if (!docs[i].src) skipped++;
+    }
+    setLightboxIndex(Math.max(0, slideIdx));
+    setLightboxOpen(true);
+  };
+
+  const fields = [
+    ["Name", driver.first_name],
+    ["Email", driver.email],
+    ["Phone", driver.phone],
+    ["Plate", driver.license_plate],
+    ["Car Type", driver.car_type],
+    ["Make", driver.vehicle_make],
+    ["Model", driver.vehicle_model],
+    ["Year", driver.vehicle_year],
+    ["Color", driver.vehicle_color],
+  ];
+
+  return (
+    <>
+      <div style={{ display: "flex", gap: "24px" }}>
+        {/* Left: driver info + actions */}
+        <div style={{ minWidth: "190px", maxWidth: "190px", flexShrink: 0 }}>
+          <div
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-md)",
+              padding: "16px",
+              marginBottom: "16px",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "10px",
+                fontWeight: 600,
+                letterSpacing: "0.07em",
+                textTransform: "uppercase",
+                color: "var(--text-secondary)",
+                marginBottom: "14px",
+              }}
+            >
+              Driver Info
+            </p>
+            {fields.map(([key, val]) => (
+              <div key={key} style={{ marginBottom: "10px" }}>
+                <p style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "2px" }}>
+                  {key}
+                </p>
+                <p style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 500, wordBreak: "break-all" }}>
+                  {val || "—"}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <Button onClick={onApprove}>Approve Driver</Button>
+            <Button onClick={onReject} variant="danger">Reject Driver</Button>
+          </div>
+        </div>
+
+        {/* Right: KYC document grid */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: "10px",
+              fontWeight: 600,
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+              color: "var(--text-secondary)",
+              marginBottom: "14px",
+            }}
+          >
+            KYC Documents
+          </p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+              gap: "12px",
+            }}
+          >
+            {docs.map((doc, idx) => (
+              <div key={idx}>
+                <DocImage
+                  src={doc.src}
+                  label={doc.label}
+                  onClick={() => openLightbox(idx)}
+                />
+                <p
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "10px",
+                    color: "var(--text-secondary)",
+                    textAlign: "center",
+                    fontWeight: 500,
+                    letterSpacing: "0.03em",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {doc.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {lightboxOpen && lightboxSlides.length > 0 && (
+        <Lightbox
+          open={lightboxOpen}
+          close={() => setLightboxOpen(false)}
+          slides={lightboxSlides}
+          index={lightboxIndex}
+          plugins={[Zoom]}
+        />
+      )}
+
+      <style>{`@keyframes kyc-spin { to { transform: rotate(360deg); } }`}</style>
+    </>
+  );
+}
+
+function DriverKYC() {
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const mainSlider = useRef();
-  const thumbSlider = useRef();
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -31,9 +310,9 @@ function Drivers() {
         const { data, error } = await supabase
           .from("drivers")
           .select(
-            `id, first_name, email, verified, car_type, phone, driving_license, 
-            national_id_front, national_id_back, vehicle_picture_front, 
-            vehicle_picture_back, car_insurance, inspection_report, 
+            `id, first_name, email, verified, car_type, phone, driving_license,
+            national_id_front, national_id_back, vehicle_picture_front,
+            vehicle_picture_back, car_insurance, inspection_report,
             company_reg_certificate, kra, passport_photo, certificate_conduct,
             vehicle_make, vehicle_model, vehicle_year, vehicle_color,
             id_number, license_plate`
@@ -53,256 +332,137 @@ function Drivers() {
     fetchDrivers();
   }, []);
 
-  const handleRowClick = (driver) => setSelectedDriver(driver);
-  const handleCloseModal = () => setSelectedDriver(null);
-
-const handleApprove = async () => {
-  if (!selectedDriver) return;
-
-  try {
-    console.log("Sending ID to backend:", selectedDriver.id); // Log to check ID
-
-    const response = await fetch(
-      "https://swyft-backend-client-nine.vercel.app/driver/verify", // Backend URL
-      {
-        method: "PATCH", // Or "PUT" depending on backend
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: selectedDriver.id, // Ensure the ID is passed correctly
-          verified: true
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to verify driver");
-    }
-
-    console.log("Driver verified:", data);
-
-    // Update state if the request is successful
-    setDrivers((prevDrivers) =>
-      prevDrivers.map((driver) =>
-        driver.id === selectedDriver.id ? { ...driver, verified: true } : driver
-      )
-    );
-
-    handleCloseModal(); // Close modal after success
-  } catch (error) {
-    console.error("Error verifying driver:", error);
-    alert("Failed to verify driver.");
-  }
-};
-
-const handleRestrict = async () => {
-  if (!selectedDriver) return;
-
-  try {
-    const response = await fetch(
-      `https://swyft-backend-client-nine.vercel.app/driver_delete/${selectedDriver.id}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json"
+  const handleApprove = async () => {
+    if (!selectedDriver) return;
+    try {
+      const response = await fetch(
+        "https://swyft-backend-client-nine.vercel.app/driver/verify",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: selectedDriver.id, verified: true }),
         }
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.message || "Failed to unverify (restrict) driver"
       );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to verify driver");
+      setDrivers((prev) => prev.filter((d) => d.id !== selectedDriver.id));
+      setSelectedDriver(null);
+    } catch (err) {
+      console.error("Error approving driver:", err);
+      alert("Failed to approve driver.");
     }
+  };
 
-    // Update local state to reflect the verified status
-    setDrivers((prevDrivers) =>
-      prevDrivers.filter((driver) => driver.id !== selectedDriver.id)
-    );
-
-    handleCloseModal();
-  } catch (error) {
-    console.error("Error restricting driver:", error);
-    alert("Failed to restrict driver.");
-  }
-};
+  const handleReject = async () => {
+    if (!selectedDriver) return;
+    try {
+      const response = await fetch(
+        `https://swyft-backend-client-nine.vercel.app/driver_delete/${selectedDriver.id}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Failed to reject driver");
+      }
+      setDrivers((prev) => prev.filter((d) => d.id !== selectedDriver.id));
+      setSelectedDriver(null);
+    } catch (err) {
+      console.error("Error rejecting driver:", err);
+      alert("Failed to reject driver.");
+    }
+  };
 
   const filteredDrivers = drivers.filter((d) =>
-    d.first_name.toLowerCase().includes(searchQuery.toLowerCase())
+    d.first_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const imageData = selectedDriver
-    ? [
-        { label: "Driving License", src: selectedDriver.driving_license },
-        { label: "National ID Front", src: selectedDriver.national_id_front },
-        { label: "National ID Back", src: selectedDriver.national_id_back },
-        {
-          label: "Vehicle Picture Front",
-          src: selectedDriver.vehicle_picture_front
-        },
-        {
-          label: "Vehicle Picture Back",
-          src: selectedDriver.vehicle_picture_back
-        },
-        { label: "Car Insurance", src: selectedDriver.car_insurance },
-        { label: "Inspection Report", src: selectedDriver.inspection_report },
-        {
-          label: "Company Reg Certificate",
-          src: selectedDriver.company_reg_certificate
-        },
-        { label: "KRA", src: selectedDriver.kra },
-        { label: "Passport Photo", src: selectedDriver.passport_photo },
-        {
-          label: "Certificate of Conduct",
-          src: selectedDriver.certificate_conduct
-        }
-      ]
-    : [];
-
-  const mainSliderSettings = {
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    arrows: true,
-    fade: false,
-    dots: false,
-    infinite: true,
-    speed: 500,
-    asNavFor: thumbSlider.current
-  };
-
-  const thumbSliderSettings = {
-    slidesToShow: 5,
-    slidesToScroll: 1,
-    dots: false,
-    infinite: true,
-    speed: 500,
-    centerMode: false,
-    focusOnSelect: true,
-    asNavFor: mainSlider.current,
-    arrows: true
-  };
-
   return (
-    <div className="p-5 max-h-screen overflow-y-auto">
-      <h1 className="text-3xl font-bold mb-4">Drivers</h1>
+    <div>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "24px" }}>
+        <div>
+          <h1 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+            Driver KYC
+          </h1>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "2px" }}>
+            {drivers.length} pending verification{drivers.length !== 1 ? "s" : ""}
+          </p>
+        </div>
 
-      <input
-        type="text"
-        placeholder="Search drivers..."
-        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white mb-4"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            background: "rgba(245,158,11,0.08)",
+            border: "1px solid rgba(245,158,11,0.2)",
+            borderRadius: "var(--radius-sm)",
+            padding: "5px 10px",
+            fontSize: "12px",
+            color: "#F59E0B",
+            fontWeight: 500,
+          }}
+        >
+          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#F59E0B" }} />
+          Pending Review
+        </div>
+      </div>
+
+      <div style={{ marginBottom: "16px" }}>
+        <input
+          type="text"
+          placeholder="Search by driver name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: "100%",
+            maxWidth: "360px",
+            padding: "9px 14px",
+            background: "var(--surface-1)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            color: "var(--text-primary)",
+            fontSize: "13px",
+            outline: "none",
+            transition: "border-color 150ms ease",
+          }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--accent-border)"; }}
+          onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
+        />
+      </div>
 
       {loading ? (
-        <p>Loading drivers...</p>
+        <div style={{ padding: "60px", textAlign: "center", color: "var(--text-secondary)", fontSize: "14px" }}>
+          Loading pending drivers...
+        </div>
       ) : error ? (
-        <p className="text-red-500">{error}</p>
+        <div style={{ padding: "24px", color: "var(--danger)", fontSize: "14px" }}>{error}</div>
       ) : (
         <DataTable
           columns={columns}
           data={filteredDrivers}
-          onRowClick={handleRowClick}
+          onRowClick={setSelectedDriver}
         />
       )}
 
       <Modal
         isOpen={!!selectedDriver}
-        onClose={handleCloseModal}
-        title="Driver Details"
+        onClose={() => setSelectedDriver(null)}
+        title="KYC Review"
+        wide
       >
         {selectedDriver && (
-          <div>
-            <p>
-              <strong>Name:</strong> {selectedDriver.first_name}
-            </p>
-            <p>
-              <strong>Email:</strong> {selectedDriver.email}
-            </p>
-            <p>
-              <strong>Phone:</strong> {selectedDriver.phone}
-            </p>
-            <p>
-              <strong>License Plate:</strong> {selectedDriver.license_plate}
-            </p>
-            <p>
-              <strong>Status:</strong>{" "}
-              {selectedDriver.verified ? "Approved" : "Pending"}
-            </p>
-            <p>
-              <strong>Car Type:</strong> {selectedDriver.car_type}
-            </p>
-            <p>
-              <strong>Vehicle Make:</strong> {selectedDriver.vehicle_make}
-            </p>
-            <p>
-              <strong>Vehicle Model:</strong> {selectedDriver.vehicle_model}
-            </p>
-            <p>
-              <strong>Vehicle Year:</strong> {selectedDriver.vehicle_year}
-            </p>
-            <p>
-              <strong>Vehicle Color:</strong> {selectedDriver.vehicle_color}
-            </p>
-
-            <div className="mt-4">
-              <Slider {...mainSliderSettings} ref={mainSlider}>
-                {imageData.map((img, idx) => (
-                  <div key={idx} className="text-center">
-                    <img
-                      src={img.src}
-                      alt={img.label}
-                      className="w-72 h-48 object-cover rounded-lg cursor-zoom-in"
-                      onClick={() => {
-                        setLightboxIndex(idx);
-                        setIsLightboxOpen(true);
-                      }}
-                    />
-                    <p className="mt-2 text-sm">{img.label}</p>
-                  </div>
-                ))}
-              </Slider>
-
-              <Slider
-                {...thumbSliderSettings}
-                ref={thumbSlider}
-                className="mt-3"
-              >
-                {imageData.map((img, idx) => (
-                  <div key={idx} className="px-1">
-                    <img
-                      src={img.src}
-                      alt={img.label}
-                      className="w-24 h-20 object-cover cursor-pointer border border-gray-400"
-                    />
-                  </div>
-                ))}
-              </Slider>
-            </div>
-
-            <div className="flex space-x-4 mt-4">
-              <Button onClick={handleApprove}>APPROVE DRIVER</Button>
-              <Button onClick={handleRestrict} variant="danger">
-                RESTRICT DRIVER
-              </Button>
-            </div>
-          </div>
+          <DriverDetail
+            driver={selectedDriver}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
         )}
       </Modal>
-
-      {isLightboxOpen && (
-        <Lightbox
-          open={isLightboxOpen}
-          close={() => setIsLightboxOpen(false)}
-          slides={imageData.map((img) => ({ src: img.src }))}
-          index={lightboxIndex}
-          plugins={[Zoom]}
-        />
-      )}
     </div>
   );
 }
 
-export default Drivers;
+export default DriverKYC;
