@@ -20,6 +20,10 @@ import SuperAdminCockpit from "./Pages/SuperAdminCockpit";
 import ImageGallery from "./Pages/ImageGallery.jsx";
 import ZoomedImagePage from "./Pages/ZoomedImagePage.jsx";
 import Customers from "./Pages/Customers.jsx";
+import NativeAnalytics from "./Pages/NativeAnalytics.jsx";
+import ReelsAnalytics from "./Pages/ReelsAnalytics.jsx";
+import ScoutsVerification from "./Pages/ScoutsVerification.jsx";
+import Pricing from "./Pages/Pricing.jsx";
 import { useIsMobile } from "./hooks/useIsMobile";
 import "@fontsource/montserrat";
 import "./index.css";
@@ -95,6 +99,10 @@ function AppShell() {
             <Route path="/insights" element={<Insights />} />
             <Route path="/driver-kyc" element={<DriverKYC />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/native-analytics" element={<NativeAnalytics />} />
+            <Route path="/reels-analytics" element={<ReelsAnalytics />} />
+            <Route path="/scouts-verification" element={<ScoutsVerification />} />
+            <Route path="/pricing" element={<Pricing />} />
           </Routes>
         </div>
       </div>
@@ -104,7 +112,7 @@ function AppShell() {
 
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/settings" element={<Settings />} />

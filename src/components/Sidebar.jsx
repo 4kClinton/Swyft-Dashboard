@@ -5,6 +5,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import InsightsIcon from "@mui/icons-material/Insights";
+import BarChartIcon from "@mui/icons-material/BarChart";
 import BuildIcon from "@mui/icons-material/Build";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -19,6 +20,7 @@ const navItems = [
       { name: "Customers", path: "/customers" },
       { name: "Drivers", path: "/drivers" },
       { name: "Unverified KYC", path: "/driver-kyc" },
+      { name: "Scouts Verification", path: "/scouts-verification" },
     ],
   },
   {
@@ -27,6 +29,7 @@ const navItems = [
     subItems: [
       { name: "Commissions", path: "/commissions" },
       { name: "Analytics", path: "/sales" },
+      { name: "Pricing", path: "/pricing" },
     ],
   },
   {
@@ -35,6 +38,14 @@ const navItems = [
     subItems: [
       { name: "Campaigns", path: "/marketing" },
       { name: "Insights", path: "/insights" },
+    ],
+  },
+  {
+    name: "Analytics",
+    icon: <BarChartIcon fontSize="small" />,
+    subItems: [
+      { name: "Native Analytics", path: "/native-analytics" },
+      { name: "Reels Analytics", path: "/reels-analytics" },
     ],
   },
   {

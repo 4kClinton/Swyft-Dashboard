@@ -125,7 +125,7 @@ function DocImage({ src, label, onClick }) {
   );
 }
 
-function DriverDetail({ driver, onApprove, onReject }) {
+function DriverDetail({ driver, onApprove, onReject, actionLoading, actionError }) {
   const [lightboxSlides, setLightboxSlides] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -229,8 +229,17 @@ function DriverDetail({ driver, onApprove, onReject }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <Button onClick={onApprove}>Approve Driver</Button>
-            <Button onClick={onReject} variant="danger">Reject Driver</Button>
+            <Button onClick={onApprove} disabled={actionLoading}>
+              {actionLoading ? "Processing…" : "Approve Driver"}
+            </Button>
+            <Button onClick={onReject} variant="danger" disabled={actionLoading}>
+              {actionLoading ? "Processing…" : "Reject Driver"}
+            </Button>
+            {actionError && (
+              <p style={{ fontSize: "11px", color: "var(--danger)", marginTop: "4px", lineHeight: 1.4 }}>
+                {actionError}
+              </p>
+            )}
           </div>
         </div>
 
@@ -302,6 +311,8 @@ function DriverKYC() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -334,6 +345,8 @@ function DriverKYC() {
 
   const handleApprove = async () => {
     if (!selectedDriver) return;
+    setActionLoading(true);
+    setActionError(null);
     try {
       const response = await fetch(
         "https://swyft-backend-client-nine.vercel.app/driver/verify",
@@ -343,18 +356,25 @@ function DriverKYC() {
           body: JSON.stringify({ id: selectedDriver.id, verified: true }),
         }
       );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to verify driver");
+      if (!response.ok) {
+        let msg = "Failed to verify driver";
+        try { const d = await response.json(); msg = d.error || d.message || msg; } catch {}
+        throw new Error(msg);
+      }
       setDrivers((prev) => prev.filter((d) => d.id !== selectedDriver.id));
       setSelectedDriver(null);
     } catch (err) {
       console.error("Error approving driver:", err);
-      alert("Failed to approve driver.");
+      setActionError(err.message);
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleReject = async () => {
     if (!selectedDriver) return;
+    setActionLoading(true);
+    setActionError(null);
     try {
       const response = await fetch(
         `https://swyft-backend-client-nine.vercel.app/driver_delete/${selectedDriver.id}`,
@@ -364,14 +384,17 @@ function DriverKYC() {
         }
       );
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || "Failed to reject driver");
+        let msg = "Failed to reject driver";
+        try { const d = await response.json(); msg = d.error || d.message || msg; } catch {}
+        throw new Error(msg);
       }
       setDrivers((prev) => prev.filter((d) => d.id !== selectedDriver.id));
       setSelectedDriver(null);
     } catch (err) {
       console.error("Error rejecting driver:", err);
-      alert("Failed to reject driver.");
+      setActionError(err.message);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -449,7 +472,7 @@ function DriverKYC() {
 
       <Modal
         isOpen={!!selectedDriver}
-        onClose={() => setSelectedDriver(null)}
+        onClose={() => { setSelectedDriver(null); setActionError(null); }}
         title="KYC Review"
         wide
       >
@@ -458,6 +481,8 @@ function DriverKYC() {
             driver={selectedDriver}
             onApprove={handleApprove}
             onReject={handleReject}
+            actionLoading={actionLoading}
+            actionError={actionError}
           />
         )}
       </Modal>
