@@ -60,42 +60,15 @@ function StatusBadge({ status }) {
   );
 }
 
-// ── Secure image loader (fetches with Bearer header) ──────────────────────────
+// ── KYC image (uses plain <img> — Convex signed URLs are public, no fetch needed) ──
 
-function SecureImage({ src, alt, style, label }) {
-  const [blobUrl, setBlobUrl] = useState(null);
-  const [status, setStatus] = useState("loading"); // loading | ok | error
-
-  useEffect(() => {
-    if (!src) { setStatus("error"); return; }
-    let cancelled = false;
-    let objectUrl = null;
-    const headers = {};
-    if (API_KEY) headers["Authorization"] = `Bearer ${API_KEY}`;
-    fetch(src, { headers })
-      .then((res) => { if (!res.ok) throw new Error(); return res.blob(); })
-      .then((blob) => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        setBlobUrl(objectUrl);
-        setStatus("ok");
-      })
-      .catch(() => { if (!cancelled) setStatus("error"); });
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [src]);
+function KycImage({ src, alt, style }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
 
   const wrapStyle = { ...style, position: "relative", overflow: "hidden", background: "var(--surface-3)", display: "flex", alignItems: "center", justifyContent: "center" };
 
-  if (status === "loading") return (
-    <div style={wrapStyle}>
-      <div style={{ width: "20px", height: "20px", border: "2px solid var(--border-hover)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "sv-spin 0.8s linear infinite" }} />
-    </div>
-  );
-
-  if (status === "error") return (
+  if (!src || errored) return (
     <div style={{ ...wrapStyle, flexDirection: "column", gap: "6px" }}>
       <PersonIcon style={{ fontSize: "32px", color: "var(--text-muted)" }} />
       <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>No image</span>
@@ -104,11 +77,24 @@ function SecureImage({ src, alt, style, label }) {
 
   return (
     <a href={src} target="_blank" rel="noopener noreferrer" style={{ display: "block", cursor: "zoom-in", ...style, position: "relative", overflow: "hidden" }}>
-      <img src={blobUrl} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-      <div style={{ position: "absolute", top: "6px", right: "6px", background: "rgba(0,0,0,0.5)", borderRadius: "4px", padding: "2px 5px", display: "flex", alignItems: "center", gap: "3px" }}>
-        <OpenInNewIcon style={{ fontSize: "10px", color: "#fff" }} />
-        <span style={{ fontSize: "9px", color: "#fff", fontWeight: 500 }}>View</span>
-      </div>
+      {!loaded && (
+        <div style={{ ...wrapStyle, position: "absolute", inset: 0 }}>
+          <div style={{ width: "20px", height: "20px", border: "2px solid var(--border-hover)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "sv-spin 0.8s linear infinite" }} />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setLoaded(true)}
+        onError={() => setErrored(true)}
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: loaded ? "block" : "none" }}
+      />
+      {loaded && (
+        <div style={{ position: "absolute", top: "6px", right: "6px", background: "rgba(0,0,0,0.5)", borderRadius: "4px", padding: "2px 5px", display: "flex", alignItems: "center", gap: "3px" }}>
+          <OpenInNewIcon style={{ fontSize: "10px", color: "#fff" }} />
+          <span style={{ fontSize: "9px", color: "#fff", fontWeight: 500 }}>View</span>
+        </div>
+      )}
     </a>
   );
 }
@@ -135,15 +121,14 @@ function EnvToggle({ env, setEnv }) {
 // ── Scout detail modal ─────────────────────────────────────────────────────────
 
 function ScoutModal({ scout, env, onClose, onVerify, verifying }) {
-  const { cloudUrl } = ENVS[env];
   const status = (scout.status || "").toLowerCase();
 
   const images = [
-    { label: "Selfie",      storageId: scout.selfieStorageId      },
-    { label: "ID Front",    storageId: scout.idFrontStorageId     },
-    { label: "ID Back",     storageId: scout.idBackStorageId      },
-    { label: "Holding ID",  storageId: scout.holdingIdStorageId   },
-  ].map((img) => ({ ...img, url: storageUrl(cloudUrl, img.storageId) }));
+    { label: "Selfie",     url: scout.selfieUrl    },
+    { label: "ID Front",   url: scout.idFrontUrl   },
+    { label: "ID Back",    url: scout.idBackUrl    },
+    { label: "Holding ID", url: scout.holdingIdUrl },
+  ];
 
   return (
     <Modal isOpen onClose={onClose} title={scout.govName || "Scout"} wide>
@@ -178,7 +163,7 @@ function ScoutModal({ scout, env, onClose, onVerify, verifying }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", marginBottom: "24px" }}>
         {images.map(({ label, url }) => (
           <div key={label} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <SecureImage
+            <KycImage
               src={url}
               alt={label}
               style={{ width: "100%", height: "180px", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}

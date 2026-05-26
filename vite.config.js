@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     server: {
+      hmr: { protocol: 'ws', host: 'localhost' },
       proxy: {
         '/convex-proxy': {
           target: convexSiteUrl,
