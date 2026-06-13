@@ -24,6 +24,7 @@ import NativeAnalytics from "./Pages/NativeAnalytics.jsx";
 import ReelsAnalytics from "./Pages/ReelsAnalytics.jsx";
 import ScoutsVerification from "./Pages/ScoutsVerification.jsx";
 import Pricing from "./Pages/Pricing.jsx";
+import DriverAnalytics from "./Pages/DriverAnalytics.jsx";
 import { useIsMobile } from "./hooks/useIsMobile";
 import "@fontsource/montserrat";
 import "./index.css";
@@ -103,6 +104,7 @@ function AppShell() {
             <Route path="/reels-analytics" element={<ReelsAnalytics />} />
             <Route path="/scouts-verification" element={<ScoutsVerification />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/driver-analytics" element={<DriverAnalytics />} />
           </Routes>
         </div>
       </div>

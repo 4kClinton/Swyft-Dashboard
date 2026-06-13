@@ -13,6 +13,8 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 const SITE_URL = import.meta.env.DEV
   ? "/convex-proxy"
   : (import.meta.env.VITE_CONVEX_SITE_URL_PROD || "").replace(/\/$/, "");
+
+const SWYFT_API = "https://swyft-backend-client-nine.vercel.app";
 const API_KEY = import.meta.env.VITE_ANALYTICS_API_KEY;
 
 const VEHICLE_META = [
@@ -102,8 +104,13 @@ function Pricing() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
 
+  const [commissionRate, setCommissionRate] = useState(18);
+  const [commissionSaving, setCommissionSaving] = useState(false);
+  const [commissionStatus, setCommissionStatus] = useState(null);
+
   useEffect(() => {
     fetchPricing();
+    fetchCommissionRate();
   }, []);
 
   async function fetchPricing() {
@@ -156,6 +163,41 @@ function Pricing() {
       setStatus({ type: "error", message: `Network error: ${e.message}` });
     }
     setSaving(false);
+  }
+
+  async function fetchCommissionRate() {
+    try {
+      const res = await fetch(`${SWYFT_API}/config`);
+      if (res.ok) {
+        const data = await res.json();
+        setCommissionRate(Math.round(data.commission_rate * 100));
+      }
+    } catch {}
+  }
+
+  async function saveCommissionRate() {
+    if (commissionRate < 1 || commissionRate > 100) {
+      setCommissionStatus({ type: "error", message: "Rate must be between 1% and 100%." });
+      return;
+    }
+    setCommissionSaving(true);
+    setCommissionStatus(null);
+    try {
+      const res = await fetch(`${SWYFT_API}/config/commission-rate`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commission_rate: commissionRate / 100 }),
+      });
+      if (res.ok) {
+        setCommissionStatus({ type: "success", message: "Commission rate updated." });
+      } else {
+        const txt = await res.text().catch(() => "");
+        setCommissionStatus({ type: "error", message: `Save failed: ${txt || res.statusText}` });
+      }
+    } catch (e) {
+      setCommissionStatus({ type: "error", message: `Network error: ${e.message}` });
+    }
+    setCommissionSaving(false);
   }
 
   const setVehicleRate = (key, val) =>
@@ -241,6 +283,66 @@ function Pricing() {
           {status.message}
         </div>
       )}
+
+      {/* Commission Rate */}
+      <div style={cardStyle}>
+        <SectionTitle
+          title="Platform Commission Rate"
+          subtitle="Percentage of each order's total charged as Swyft's platform fee. Applied to all drivers in real time."
+        />
+        {commissionStatus && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: "8px",
+            padding: "10px 14px", marginBottom: "14px",
+            background: commissionStatus.type === "success" ? "var(--accent-dim)" : "var(--danger-dim)",
+            border: `1px solid ${commissionStatus.type === "success" ? "var(--accent-border)" : "rgba(239,68,68,0.25)"}`,
+            borderRadius: "var(--radius-sm)",
+            fontSize: "13px",
+            color: commissionStatus.type === "success" ? "var(--accent)" : "var(--danger)",
+          }}>
+            {commissionStatus.type === "success"
+              ? <CheckCircleOutlineIcon style={{ fontSize: "16px" }} />
+              : <ErrorOutlineIcon style={{ fontSize: "16px" }} />}
+            {commissionStatus.message}
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", flexWrap: "wrap" }}>
+          <div>
+            <label style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600, display: "block", marginBottom: "6px", letterSpacing: "0.02em", textTransform: "uppercase" }}>
+              Rate (%)
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={commissionRate}
+              onChange={(e) => setCommissionRate(Number(e.target.value))}
+              style={{ ...inputStyle, width: "110px" }}
+            />
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)", paddingBottom: "10px" }}>
+            Drivers keep <strong style={{ color: "var(--text-primary)" }}>{100 - commissionRate}%</strong> of each fare
+          </div>
+          <button
+            onClick={saveCommissionRate}
+            disabled={commissionSaving}
+            style={{
+              padding: "9px 20px",
+              background: commissionSaving ? "var(--accent-dim)" : "var(--accent)",
+              border: commissionSaving ? "1px solid var(--accent-border)" : "none",
+              borderRadius: "var(--radius-sm)",
+              color: commissionSaving ? "var(--accent)" : "#07080D",
+              fontSize: "13px", fontWeight: 700,
+              cursor: commissionSaving ? "not-allowed" : "pointer",
+              transition: "all 150ms ease",
+              fontFamily: "inherit",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {commissionSaving ? "Saving..." : "Update Rate"}
+          </button>
+        </div>
+      </div>
 
       {/* Vehicle Base Rates */}
       <div style={cardStyle}>
