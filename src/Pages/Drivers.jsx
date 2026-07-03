@@ -6,7 +6,7 @@ import { supabase } from "../supabaseClient";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
-import { resolveKycImageUrl } from "../utils/imageUtils";
+import { resolveKycImageUrl, getDriverKycDocs } from "../utils/imageUtils";
 
 const columns = ["first_name", "email"];
 
@@ -112,6 +112,7 @@ function Drivers() {
   const [lightboxSlides, setLightboxSlides] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [docs, setDocs] = useState([]);
 
   useEffect(() => {
     async function fetchDrivers() {
@@ -166,27 +167,22 @@ function Drivers() {
     d.first_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getDocs = (driver) => [
-    { label: "Passport Photo", src: driver.passport_photo },
-    { label: "Driving License", src: driver.driving_license },
-    { label: "National ID Front", src: driver.national_id_front },
-    { label: "National ID Back", src: driver.national_id_back },
-    { label: "Vehicle Front", src: driver.vehicle_picture_front },
-    { label: "Vehicle Back", src: driver.vehicle_picture_back },
-    { label: "Car Insurance", src: driver.car_insurance },
-    { label: "Inspection Report", src: driver.inspection_report },
-    { label: "Company Reg Cert", src: driver.company_reg_certificate },
-    { label: "KRA", src: driver.kra },
-    { label: "Certificate of Conduct", src: driver.certificate_conduct },
-  ];
-
-  // Build lightbox slides when driver is selected
+  // Build docs from DB columns + the driver's storage folder (covers drivers
+  // whose files exist in storage but whose DB columns are null).
   useEffect(() => {
-    if (!selectedDriver) return;
+    if (!selectedDriver) { setDocs([]); return; }
     let cancelled = false;
+    (async () => {
+      const built = await getDriverKycDocs(selectedDriver);
+      if (!cancelled) setDocs(built);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedDriver?.id]);
 
+  // Build lightbox slides when docs change
+  useEffect(() => {
+    let cancelled = false;
     async function buildSlides() {
-      const docs = getDocs(selectedDriver);
       const resolved = await Promise.all(
         docs.map(async (d) => {
           const url = await resolveKycImageUrl(d.src);
@@ -195,10 +191,9 @@ function Drivers() {
       );
       if (!cancelled) setLightboxSlides(resolved.filter(Boolean));
     }
-
     buildSlides();
     return () => { cancelled = true; };
-  }, [selectedDriver?.id]);
+  }, [docs]);
 
   const openLightbox = (docs, docIndex) => {
     const loadableDocs = docs.filter((d) => d.src);
@@ -213,8 +208,6 @@ function Drivers() {
     setLightboxIndex(Math.max(0, slideIdx));
     setLightboxOpen(true);
   };
-
-  const docs = selectedDriver ? getDocs(selectedDriver) : [];
 
   const fields = selectedDriver ? [
     ["Name", selectedDriver.first_name],

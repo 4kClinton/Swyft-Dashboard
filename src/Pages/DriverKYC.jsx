@@ -6,7 +6,7 @@ import { supabase } from "../supabaseClient";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
-import { resolveKycImageUrl } from "../utils/imageUtils";
+import { resolveKycImageUrl, getDriverKycDocs } from "../utils/imageUtils";
 
 const columns = ["first_name", "email"];
 
@@ -129,28 +129,20 @@ function DriverDetail({ driver, onApprove, onReject, actionLoading, actionError 
   const [lightboxSlides, setLightboxSlides] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [docs, setDocs] = useState([]);
 
-  const docs = [
-    { label: "Passport Photo", src: driver.passport_photo },
-    { label: "Driving License", src: driver.driving_license },
-    { label: "National ID Front", src: driver.national_id_front },
-    { label: "National ID Back", src: driver.national_id_back },
-    { label: "Vehicle Front", src: driver.vehicle_picture_front },
-    { label: "Vehicle Back", src: driver.vehicle_picture_back },
-    { label: "Car Insurance", src: driver.car_insurance },
-    { label: "Inspection Report", src: driver.inspection_report },
-    { label: "Company Reg Cert", src: driver.company_reg_certificate },
-    { label: "KRA", src: driver.kra },
-    { label: "Certificate of Conduct", src: driver.certificate_conduct },
-  ];
-
-  // Log raw values so you can inspect in console what's stored
+  // Build docs from DB columns + the driver's storage folder (covers drivers
+  // whose files exist in storage but whose DB columns are null).
   useEffect(() => {
-    console.log("KYC docs for driver:", driver.first_name);
-    docs.forEach((d) => console.log(`  ${d.label}:`, d.src));
+    let cancelled = false;
+    (async () => {
+      const built = await getDriverKycDocs(driver);
+      if (!cancelled) setDocs(built);
+    })();
+    return () => { cancelled = true; };
   }, [driver.id]);
 
-  // Pre-resolve all URLs for lightbox when driver changes
+  // Pre-resolve all URLs for lightbox when docs change
   useEffect(() => {
     let cancelled = false;
     async function buildSlides() {
@@ -164,7 +156,7 @@ function DriverDetail({ driver, onApprove, onReject, actionLoading, actionError 
     }
     buildSlides();
     return () => { cancelled = true; };
-  }, [driver.id]);
+  }, [docs]);
 
   const openLightbox = (docIndex) => {
     // Map doc index to lightbox slide index (skipping null slides)

@@ -1,18 +1,18 @@
-// // src/supabaseClient.js
-// import { createClient } from '@supabase/supabase-js';
-
-// const supabaseUrl =import.meta.env.VITE_SUPABASEURL;
-// const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-
 import { createClient } from '@supabase/supabase-js';
 
-// const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseUrl = "https://gtevlsbundbddlqqslbf.supabase.co"
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0ZXZsc2J1bmRiZGRscXFzbGJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU4MDE3MTEsImV4cCI6MjA1MTM3NzcxMX0.K0j3QjXqb-WZ3bOf8jlSDcmjV68OMYKet4_xf52kNXM"
-// const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+// Credentials come from the environment (.env -> VITE_* vars), never hardcoded.
+// Note: VITE_ vars are inlined into the client bundle at build time, so the
+// anon key is still visible to end users by design — data is protected by RLS,
+// not by hiding this key. Keeping it in env just keeps it out of source/history.
+const supabaseUrl = import.meta.env.VITE_SUPABASEURL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(
+    'Missing Supabase config: set VITE_SUPABASEURL and VITE_SUPABASE_ANON_KEY in your .env'
+  );
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export { supabase };
+export { supabase, supabaseUrl };
