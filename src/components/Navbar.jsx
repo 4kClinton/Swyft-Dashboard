@@ -10,6 +10,7 @@ const routeLabels = {
   "/customers": "Customers",
   "/driver-kyc": "Driver KYC",
   "/commissions": "Commissions",
+  "/disputes": "Disputes",
   "/sales": "Analytics",
   "/marketing": "Marketing",
   "/settings": "Super Admin",

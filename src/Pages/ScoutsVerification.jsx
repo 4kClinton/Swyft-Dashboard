@@ -19,6 +19,24 @@ const STATUSES = [
   { key: "rejected", label: "Rejected", color: "#EF4444", dim: "rgba(239,68,68,0.08)",  border: "rgba(239,68,68,0.18)"  },
 ];
 
+// Seller type — the applicant deals in one of these. Stores (furniture /
+// appliances / construction) carry storefront details that must be reviewed
+// alongside their KYC docs; house-hunting scouts leave those unset.
+const SELLER_TYPES = {
+  house_hunting:         { label: "House Scout",  color: "#00D46A", dim: "rgba(0,212,106,0.1)"  },
+  furniture:             { label: "Furniture",    color: "#8B5CF6", dim: "rgba(139,92,246,0.12)" },
+  appliances:            { label: "Appliances",   color: "#3B82F6", dim: "rgba(59,130,246,0.12)" },
+  building_construction: { label: "Construction", color: "#F97316", dim: "rgba(249,115,22,0.12)" },
+};
+
+function sellerTypeMeta(t) {
+  return SELLER_TYPES[t] || SELLER_TYPES.house_hunting;
+}
+
+function isStore(t) {
+  return t && t !== "house_hunting";
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function apiFetch(siteUrl, path, options = {}) {
@@ -56,6 +74,17 @@ function StatusBadge({ status }) {
   return (
     <span style={{ background: s.dim, border: `1px solid ${s.border}`, color: s.color, borderRadius: "var(--radius-xs)", padding: "2px 8px", fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
       {s.label}
+    </span>
+  );
+}
+
+// ── Seller-type badge ────────────────────────────────────────────────────────
+
+function TypeBadge({ sellerType }) {
+  const m = sellerTypeMeta(sellerType);
+  return (
+    <span style={{ background: m.dim, border: `1px solid ${m.color}40`, color: m.color, borderRadius: "var(--radius-xs)", padding: "2px 8px", fontSize: "10px", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+      {m.label}
     </span>
   );
 }
@@ -131,12 +160,16 @@ function ScoutModal({ scout, env, onClose, onVerify, verifying }) {
   ];
 
   return (
-    <Modal isOpen onClose={onClose} title={scout.govName || "Scout"} wide>
+    <Modal isOpen onClose={onClose} title={(isStore(scout.sellerType) && scout.businessName) || scout.govName || "Scout"} wide>
       {/* Info strip */}
       <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", marginBottom: "24px" }}>
         <div>
           <p style={lblStyle}>Status</p>
           <StatusBadge status={status} />
+        </div>
+        <div>
+          <p style={lblStyle}>Seller Type</p>
+          <TypeBadge sellerType={scout.sellerType} />
         </div>
         <div>
           <p style={lblStyle}>Legal Name</p>
@@ -155,6 +188,47 @@ function ScoutModal({ scout, env, onClose, onVerify, verifying }) {
           <p style={{ ...valStyle, color: scout.earnings > 0 ? "var(--accent)" : "var(--text-secondary)" }}>{fmtEarnings(scout.earnings)}</p>
         </div>
       </div>
+
+      {/* Storefront details — stores only (furniture / appliances / construction) */}
+      {isStore(scout.sellerType) && (
+        <div style={{ marginBottom: "24px" }}>
+          <p style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: "14px" }}>
+            Storefront Details
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "16px 24px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "16px" }}>
+            <div>
+              <p style={lblStyle}>Business Name</p>
+              <p style={valStyle}>{scout.businessName || "—"}</p>
+            </div>
+            <div>
+              <p style={lblStyle}>Store Phone</p>
+              <p style={valStyle}>
+                {scout.storePhone
+                  ? <a href={`tel:${scout.storePhone}`} style={{ color: "var(--accent)", textDecoration: "none" }}>{scout.storePhone}</a>
+                  : "—"}
+              </p>
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <p style={lblStyle}>Store Location</p>
+              <p style={valStyle}>{scout.storeLocation || "—"}</p>
+            </div>
+            {(scout.storeGpsLat != null && scout.storeGpsLng != null) && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <p style={lblStyle}>GPS</p>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${scout.storeGpsLat},${scout.storeGpsLng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "var(--accent)", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
+                >
+                  <OpenInNewIcon style={{ fontSize: "13px" }} />
+                  {Number(scout.storeGpsLat).toFixed(5)}, {Number(scout.storeGpsLng).toFixed(5)}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* KYC images */}
       <p style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: "14px" }}>
@@ -182,7 +256,7 @@ function ScoutModal({ scout, env, onClose, onVerify, verifying }) {
             style={actionBtn("#00D46A", "rgba(0,212,106,0.08)", "rgba(0,212,106,0.25)", verifying)}
           >
             <CheckCircleOutlineIcon fontSize="small" />
-            {verifying ? "Processing…" : "Approve Scout"}
+            {verifying ? "Processing…" : `Approve ${isStore(scout.sellerType) ? "Store" : "Scout"}`}
           </button>
           <button
             onClick={() => onVerify(scout._id, "reject")}
@@ -190,7 +264,7 @@ function ScoutModal({ scout, env, onClose, onVerify, verifying }) {
             style={actionBtn("#EF4444", "rgba(239,68,68,0.08)", "rgba(239,68,68,0.25)", verifying)}
           >
             <CancelOutlinedIcon fontSize="small" />
-            {verifying ? "Processing…" : "Reject Scout"}
+            {verifying ? "Processing…" : `Reject ${isStore(scout.sellerType) ? "Store" : "Scout"}`}
           </button>
         </div>
       )}
@@ -272,7 +346,7 @@ function ScoutsVerification() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <h1 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Scouts Verification</h1>
+            <h1 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>Partner Verification</h1>
             {statusFilter === "pending" && scouts.length > 0 && (
               <span style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", color: "#F59E0B", borderRadius: "var(--radius-xs)", padding: "2px 8px", fontSize: "11px", fontWeight: 700 }}>
                 {scouts.length} pending
@@ -347,14 +421,15 @@ function ScoutsVerification() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    {["Scout", "User ID", "Submitted", "Earnings", "Status", "Actions"].map((h) => (
+                    {["Applicant", "Type", "User ID", "Submitted", "Earnings", "Status", "Actions"].map((h) => (
                       <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "10px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {scouts.map((scout, i) => {
-                    const name     = scout.govName || `Scout #${i + 1}`;
+                    const store    = isStore(scout.sellerType);
+                    const name     = (store ? scout.businessName : scout.govName) || scout.govName || `Scout #${i + 1}`;
                     const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
                     const status   = scout.status || "pending";
 
@@ -374,6 +449,10 @@ function ScoutsVerification() {
                             </div>
                             <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>{name}</span>
                           </div>
+                        </td>
+                        {/* Seller type */}
+                        <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                          <TypeBadge sellerType={scout.sellerType} />
                         </td>
                         {/* User ID */}
                         <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>

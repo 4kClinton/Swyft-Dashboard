@@ -4,6 +4,8 @@ import Modal from "../components/Modal";
 import ChartCard from "../components/ChartCard";
 import { supabase } from "../supabaseClient";
 
+const SWYFT_API = "https://swyft-backend-client-nine.vercel.app";
+
 function Commissions() {
   const [commissionsData, setCommissionsData] = useState([]);
   const [pendingData, setPendingData] = useState([]);
@@ -13,6 +15,46 @@ function Commissions() {
   const [pendingSearch, setPendingSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [suspendState, setSuspendState] = useState(null); // null | "confirming" | "loading" | "done" | "error"
+
+  // Scout move-tip payables (adjustmentPlan Phase 5b). Each tip is gated on the
+  // linked driver's commission being marked received, then paid manually by ops.
+  const [scoutPayables, setScoutPayables] = useState([]);
+  const [scoutLoading, setScoutLoading] = useState(true);
+
+  async function fetchScoutPayables() {
+    setScoutLoading(true);
+    try {
+      const res = await fetch(`${SWYFT_API}/scout-payables`);
+      if (res.ok) setScoutPayables(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+    setScoutLoading(false);
+  }
+
+  useEffect(() => { fetchScoutPayables(); }, []);
+
+  async function markDriverReceived(moveId) {
+    try {
+      await fetch(`${SWYFT_API}/scout-payables/mark-driver-received`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ move_id: moveId }),
+      });
+      fetchScoutPayables();
+    } catch (e) { console.error(e); }
+  }
+
+  async function markTipPaid(moveId) {
+    try {
+      await fetch(`${SWYFT_API}/scout-payables/mark-tip-paid`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ move_id: moveId }),
+      });
+      fetchScoutPayables();
+    } catch (e) { console.error(e); }
+  }
 
   useEffect(() => {
     async function fetchCommissions() {
@@ -230,6 +272,82 @@ function Commissions() {
               }}
             />
           </>
+        )}
+      </div>
+
+      {/* Scouts to be paid (Phase 5b) */}
+      <div style={{
+        background: "var(--surface-1)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius)",
+        padding: "20px",
+      }}>
+        <div style={{ marginBottom: "16px" }}>
+          <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+            Scouts to be paid
+          </h2>
+          <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
+            Move tips owed to scouts. Mark the driver's commission received to unlock a tip,
+            then mark it paid once you've sent the M-Pesa.
+          </p>
+        </div>
+
+        {scoutLoading ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)", fontSize: "14px" }}>
+            Loading...
+          </div>
+        ) : scoutPayables.length === 0 ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)", fontSize: "14px" }}>
+            No scout tips owed yet
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {scoutPayables.map((m) => (
+              <div key={m.move_id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
+                padding: "12px 14px", background: "var(--surface-2)", borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border)", flexWrap: "wrap",
+              }}>
+                <div style={{ minWidth: "180px" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                    Scout {String(m.scout_id).slice(-6)}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+                    Move {String(m.move_id).slice(-6)} · driver {m.driver_id ? String(m.driver_id).slice(-6) : "—"} · {m.created_at || ""}
+                  </div>
+                </div>
+                <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--accent, #10B981)" }}>
+                  Tip KES {Number(m.scout_tip || 0).toLocaleString()}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{
+                    fontSize: "11px", fontWeight: 600, padding: "3px 8px", borderRadius: "999px",
+                    textTransform: "uppercase", letterSpacing: "0.04em",
+                    background: m.status === "paid" ? "rgba(16,185,129,0.12)" : m.status === "cleared" ? "rgba(59,130,246,0.12)" : "rgba(245,158,11,0.12)",
+                    color: m.status === "paid" ? "#10B981" : m.status === "cleared" ? "#3B82F6" : "#F59E0B",
+                  }}>
+                    {m.status.replace("_", " ")}
+                  </span>
+                  {m.status === "pending_clearance" && (
+                    <button
+                      onClick={() => markDriverReceived(m.move_id)}
+                      style={{ padding: "7px 12px", background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", color: "var(--text-primary)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+                    >
+                      Driver commission received
+                    </button>
+                  )}
+                  {m.status === "cleared" && (
+                    <button
+                      onClick={() => markTipPaid(m.move_id)}
+                      style={{ padding: "7px 12px", background: "#10B981", border: "none", borderRadius: "var(--radius-sm)", color: "#07080D", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+                    >
+                      Mark tip paid
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

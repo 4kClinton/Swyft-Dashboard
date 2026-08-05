@@ -20,7 +20,7 @@ const navItems = [
       { name: "Customers", path: "/customers" },
       { name: "Drivers", path: "/drivers" },
       { name: "Unverified KYC", path: "/driver-kyc" },
-      { name: "Scouts Verification", path: "/scouts-verification" },
+      { name: "Partner Verification", path: "/scouts-verification" },
     ],
   },
   {
@@ -55,9 +55,11 @@ const navItems = [
     subItems: [
       { name: "Affiliates", path: "/affiliates" },
       { name: "Fraud", path: "/fraud" },
+      { name: "Reports", path: "/reports" },
+      { name: "Disputes", path: "/disputes" },
     ],
   },
-  { name: "Tech", path: "/tech-management", icon: <BuildIcon fontSize="small" /> },
+  { name: "App Updates", path: "/app-updates", icon: <BuildIcon fontSize="small" /> },
   { name: "Super Admin", path: "/settings", icon: <AdminPanelSettingsIcon fontSize="small" /> },
 ];
 

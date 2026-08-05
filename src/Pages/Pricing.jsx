@@ -108,6 +108,11 @@ function Pricing() {
   const [commissionSaving, setCommissionSaving] = useState(false);
   const [commissionStatus, setCommissionStatus] = useState(null);
 
+  // Scout tip: the scout's cut of the Swyft commission on an attributed move.
+  const [scoutTipPercent, setScoutTipPercent] = useState(25);
+  const [scoutTipSaving, setScoutTipSaving] = useState(false);
+  const [scoutTipStatus, setScoutTipStatus] = useState(null);
+
   useEffect(() => {
     fetchPricing();
     fetchCommissionRate();
@@ -171,8 +176,36 @@ function Pricing() {
       if (res.ok) {
         const data = await res.json();
         setCommissionRate(Math.round(data.commission_rate * 100));
+        if (typeof data.scout_tip_percent === "number") {
+          setScoutTipPercent(Math.round(data.scout_tip_percent * 100));
+        }
       }
     } catch {}
+  }
+
+  async function saveScoutTip() {
+    if (scoutTipPercent < 0 || scoutTipPercent > 100) {
+      setScoutTipStatus({ type: "error", message: "Tip must be between 0% and 100%." });
+      return;
+    }
+    setScoutTipSaving(true);
+    setScoutTipStatus(null);
+    try {
+      const res = await fetch(`${SWYFT_API}/config/scout-tip`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scout_tip_percent: scoutTipPercent / 100 }),
+      });
+      if (res.ok) {
+        setScoutTipStatus({ type: "success", message: "Scout tip updated." });
+      } else {
+        const txt = await res.text().catch(() => "");
+        setScoutTipStatus({ type: "error", message: `Save failed: ${txt || res.statusText}` });
+      }
+    } catch (e) {
+      setScoutTipStatus({ type: "error", message: `Network error: ${e.message}` });
+    }
+    setScoutTipSaving(false);
   }
 
   async function saveCommissionRate() {
@@ -341,6 +374,66 @@ function Pricing() {
           >
             {commissionSaving ? "Saving..." : "Update Rate"}
           </button>
+        </div>
+
+        {/* Scout tip — cut of the Swyft commission paid to the scout who sourced the move */}
+        <div style={{ borderTop: "1px solid var(--border)", marginTop: "20px", paddingTop: "18px" }}>
+          <SectionTitle
+            title="Scout Move Tip"
+            subtitle="Share of Swyft's commission paid to the scout who sourced an attributed move (via a guided tour)."
+          />
+          {scoutTipStatus && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: "8px",
+              padding: "10px 14px", marginBottom: "14px",
+              background: scoutTipStatus.type === "success" ? "var(--accent-dim)" : "var(--danger-dim)",
+              border: `1px solid ${scoutTipStatus.type === "success" ? "var(--accent-border)" : "rgba(239,68,68,0.25)"}`,
+              borderRadius: "var(--radius-sm)",
+              fontSize: "13px",
+              color: scoutTipStatus.type === "success" ? "var(--accent)" : "var(--danger)",
+            }}>
+              {scoutTipStatus.type === "success"
+                ? <CheckCircleOutlineIcon style={{ fontSize: "16px" }} />
+                : <ErrorOutlineIcon style={{ fontSize: "16px" }} />}
+              {scoutTipStatus.message}
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", flexWrap: "wrap" }}>
+            <div>
+              <label style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600, display: "block", marginBottom: "6px", letterSpacing: "0.02em", textTransform: "uppercase" }}>
+                Tip (% of commission)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={scoutTipPercent}
+                onChange={(e) => setScoutTipPercent(Number(e.target.value))}
+                style={{ ...inputStyle, width: "110px" }}
+              />
+            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)", paddingBottom: "10px" }}>
+              Scout earns <strong style={{ color: "var(--text-primary)" }}>{scoutTipPercent}%</strong> of Swyft's commission on the move
+            </div>
+            <button
+              onClick={saveScoutTip}
+              disabled={scoutTipSaving}
+              style={{
+                padding: "9px 20px",
+                background: scoutTipSaving ? "var(--accent-dim)" : "var(--accent)",
+                border: scoutTipSaving ? "1px solid var(--accent-border)" : "none",
+                borderRadius: "var(--radius-sm)",
+                color: scoutTipSaving ? "var(--accent)" : "#07080D",
+                fontSize: "13px", fontWeight: 700,
+                cursor: scoutTipSaving ? "not-allowed" : "pointer",
+                transition: "all 150ms ease",
+                fontFamily: "inherit",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {scoutTipSaving ? "Saving..." : "Update Tip"}
+            </button>
+          </div>
         </div>
       </div>
 
