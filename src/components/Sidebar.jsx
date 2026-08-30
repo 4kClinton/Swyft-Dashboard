@@ -47,6 +47,7 @@ const navItems = [
       { name: "Native Analytics", path: "/native-analytics" },
       { name: "Reels Analytics", path: "/reels-analytics" },
       { name: "Driver Credit Profiles", path: "/driver-analytics" },
+      { name: "Driver Supply", path: "/driver-supply" },
     ],
   },
   {

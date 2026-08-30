@@ -9,10 +9,27 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
-// In dev, route through Vite proxy to sidestep CORS; in prod, hit Convex directly.
-const SITE_URL = import.meta.env.DEV
-  ? "/convex-proxy"
-  : (import.meta.env.VITE_CONVEX_SITE_URL_PROD || "").replace(/\/$/, "");
+// Pricing config lives in Convex, which has separate DEV and PROD deployments.
+// In dev we route through the Vite proxy (per-env paths) to sidestep CORS; in a
+// production build we hit the Convex site URL directly.
+const ENVS = {
+  dev: {
+    base: import.meta.env.DEV
+      ? "/convex-dev"
+      : (import.meta.env.VITE_CONVEX_SITE_URL_DEV || "").replace(/\/$/, ""),
+    label: "Development",
+    tag: "DEV",
+    color: "#F59E0B",
+  },
+  prod: {
+    base: import.meta.env.DEV
+      ? "/convex-prod"
+      : (import.meta.env.VITE_CONVEX_SITE_URL_PROD || "").replace(/\/$/, ""),
+    label: "Production",
+    tag: "PROD",
+    color: "#00D46A",
+  },
+};
 
 const SWYFT_API = "https://swyft-backend-client-nine.vercel.app";
 const API_KEY = import.meta.env.VITE_ANALYTICS_API_KEY;
@@ -99,6 +116,13 @@ function SectionTitle({ title, subtitle }) {
 }
 
 function Pricing() {
+  // Default to PROD so the page reflects the live app; the toggle lets you peek
+  // at (and edit) the DEV deployment's pricing config.
+  const [env, setEnv] = useState(
+    () => localStorage.getItem("pricing_env") || "prod"
+  );
+  const envCfg = ENVS[env];
+
   const [pricing, setPricing] = useState(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -114,15 +138,22 @@ function Pricing() {
   const [scoutTipStatus, setScoutTipStatus] = useState(null);
 
   useEffect(() => {
+    localStorage.setItem("pricing_env", env);
     fetchPricing();
     fetchCommissionRate();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [env]);
 
   async function fetchPricing() {
     setLoading(true);
     setStatus(null);
+    if (!envCfg.base) {
+      setStatus({ type: "error", message: `VITE_CONVEX_SITE_URL_${envCfg.tag} is not set in .env — restart the dev server after adding it.` });
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await fetch(`${SITE_URL}/api/pricing`, {
+      const res = await fetch(`${envCfg.base}/api/pricing`, {
         headers: { Authorization: `Bearer ${API_KEY}` },
       });
       if (res.ok) {
@@ -150,7 +181,7 @@ function Pricing() {
     setSaving(true);
     setStatus(null);
     try {
-      const res = await fetch(`${SITE_URL}/api/pricing`, {
+      const res = await fetch(`${envCfg.base}/api/pricing`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${API_KEY}`,
@@ -275,28 +306,66 @@ function Pricing() {
             Pricing
           </h1>
           <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>
-            Configure vehicle rates, distance tiers, and fare parameters.
+            Configure vehicle rates, distance tiers, and fare parameters —{" "}
+            <span style={{ color: envCfg.color, fontWeight: 600 }}>{envCfg.label}</span> config.
           </p>
         </div>
-        <button
-          onClick={fetchPricing}
-          style={{
-            display: "flex", alignItems: "center", gap: "6px",
-            padding: "8px 14px",
-            background: "var(--surface-2)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-sm)",
-            color: "var(--text-secondary)",
-            fontSize: "12px", fontWeight: 500,
-            cursor: "pointer", transition: "all 150ms ease",
-            fontFamily: "inherit", flexShrink: 0,
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
-        >
-          <RefreshIcon style={{ fontSize: "16px" }} />
-          Refresh
-        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+          {/* ENV toggle */}
+          <div
+            style={{
+              display: "flex",
+              background: "var(--surface-1)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-sm)",
+              padding: "4px",
+              gap: "4px",
+            }}
+          >
+            {Object.entries(ENVS).map(([key, cfg]) => (
+              <button
+                key={key}
+                onClick={() => setEnv(key)}
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: "var(--radius-xs)",
+                  background: env === key ? cfg.color + "1A" : "transparent",
+                  border: env === key ? `1px solid ${cfg.color}40` : "1px solid transparent",
+                  color: env === key ? cfg.color : "var(--text-secondary)",
+                  fontSize: "12px",
+                  fontWeight: env === key ? 700 : 500,
+                  cursor: "pointer",
+                  letterSpacing: "0.04em",
+                  transition: "all 150ms ease",
+                  fontFamily: "inherit",
+                }}
+              >
+                {cfg.tag}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={fetchPricing}
+            style={{
+              display: "flex", alignItems: "center", gap: "6px",
+              padding: "8px 14px",
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-sm)",
+              color: "var(--text-secondary)",
+              fontSize: "12px", fontWeight: 500,
+              cursor: "pointer", transition: "all 150ms ease",
+              fontFamily: "inherit", flexShrink: 0,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+          >
+            <RefreshIcon style={{ fontSize: "16px" }} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Status banner */}

@@ -27,6 +27,7 @@ import Pricing from "./Pages/Pricing.jsx";
 import Disputes from "./Pages/Disputes.jsx";
 import Reports from "./Pages/Reports.jsx";
 import DriverAnalytics from "./Pages/DriverAnalytics.jsx";
+import DriverSupply from "./Pages/DriverSupply.jsx";
 import AppUpdates from "./Pages/AppUpdates.jsx";
 import { useIsMobile } from "./hooks/useIsMobile";
 import "@fontsource/montserrat";
@@ -110,6 +111,7 @@ function AppShell() {
             <Route path="/scouts-verification" element={<ScoutsVerification />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/driver-analytics" element={<DriverAnalytics />} />
+            <Route path="/driver-supply" element={<DriverSupply />} />
             <Route path="/app-updates" element={<AppUpdates />} />
           </Routes>
         </div>
